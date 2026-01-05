@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { Send, ShoppingBag, User, Image as ImageIcon, CheckCircle2, MessageSquareText, Share, Plus, Loader2, Copy } from 'lucide-react';
+import { Send, ShoppingBag, User, Image as ImageIcon, CheckCircle2, MessageSquareText, Share, Plus, Loader2, Copy, Check } from 'lucide-react';
 import { OrderStatus } from '../types.ts';
 
 const BuyerForm: React.FC = () => {
@@ -10,6 +10,8 @@ const BuyerForm: React.FC = () => {
   const [imageUrl, setImageUrl] = useState('');
   const [isSending, setIsSending] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const [lastMagicLink, setLastMagicLink] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -26,11 +28,26 @@ const BuyerForm: React.FC = () => {
     return `${window.location.origin}${window.location.pathname}?importData=${encodedData}`;
   };
 
+  const handleCopyCode = () => {
+    if (!lastMagicLink) return;
+    try {
+      const textArea = document.createElement("textarea");
+      textArea.value = lastMagicLink;
+      document.body.appendChild(textArea);
+      textArea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textArea);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      alert('複製失敗，請手動選取連結。');
+    }
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setIsSending(true);
 
-    // 加入隨機數確保 ID 唯一，避免後台判定為重複提交
     const randomSuffix = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
     const orderData = {
       id: `EXT-${Date.now()}-${randomSuffix}`,
@@ -48,13 +65,14 @@ const BuyerForm: React.FC = () => {
     };
 
     const magicLink = generateMagicLink(orderData);
+    setLastMagicLink(magicLink);
 
     setTimeout(() => {
       // 1. 同步至 LocalStorage
       const queue = JSON.parse(localStorage.getItem('rento_external_queue') || '[]');
       localStorage.setItem('rento_external_queue', JSON.stringify([...queue, orderData]));
       
-      // 2. 自動複製到剪貼簿
+      // 2. 嘗試自動複製 (雖然 iOS 之後可能會攔截，但第一次通常會成功)
       try {
         const textArea = document.createElement("textarea");
         textArea.value = magicLink;
@@ -62,9 +80,7 @@ const BuyerForm: React.FC = () => {
         textArea.select();
         document.execCommand('copy');
         document.body.removeChild(textArea);
-      } catch (err) {
-        console.warn("Legacy copy fallback failed");
-      }
+      } catch (err) {}
       
       setIsSending(false);
       setSubmitted(true);
@@ -72,17 +88,7 @@ const BuyerForm: React.FC = () => {
   };
 
   const handleManualShare = async () => {
-    const randomSuffix = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
-    const orderData = {
-      id: `MAGIC-${Date.now()}-${randomSuffix}`,
-      buyerName,
-      productName,
-      requestedQuantity: parseInt(qty),
-      notes: notes,
-    };
-
-    const magicLink = generateMagicLink(orderData);
-    const shareText = `🌸 Rento 代購委託單\n👤 買家：${buyerName}\n📦 商品：${productName}\n🔢 數量：${qty}\n🔗 匯入連結：\n${magicLink}`;
+    const shareText = `🌸 Rento 代購委託單\n👤 買家：${buyerName}\n📦 商品：${productName}\n🔢 數量：${qty}\n🔗 匯入連結：\n${lastMagicLink}`;
     
     if (navigator.share) {
       try {
@@ -106,22 +112,28 @@ const BuyerForm: React.FC = () => {
             </div>
           </div>
           <div className="space-y-4">
-            <h2 className="text-2xl font-black text-gray-900">同步就緒！</h2>
-            <div className="bg-blue-50/50 p-4 rounded-2xl border border-blue-100">
-                <p className="text-sm text-blue-700 font-bold leading-relaxed">
-                    委託資訊已自動複製到剪貼簿。<br/>
-                    <span className="text-xs font-medium opacity-80">請切換回團長 App，系統將會自動感應收單。</span>
+            <h2 className="text-2xl font-black text-gray-900">委託單已就緒</h2>
+            <div className="bg-indigo-50/50 p-5 rounded-[2rem] border border-indigo-100 flex flex-col items-center gap-3">
+                <p className="text-sm text-indigo-700 font-bold leading-relaxed px-4">
+                    請點擊下方按鈕複製代碼，並切換回團長 App，系統將會立即感應收單。
                 </p>
+                <button 
+                  onClick={handleCopyCode}
+                  className={`flex items-center gap-2 px-6 py-3 rounded-full font-black text-sm transition-all ${copied ? 'bg-green-500 text-white' : 'bg-indigo-500 text-white shadow-lg shadow-indigo-100'}`}
+                >
+                  {copied ? <Check size={16} strokeWidth={3} /> : <Copy size={16} strokeWidth={3} />}
+                  {copied ? '代碼已複製' : '點此複製代碼'}
+                </button>
             </div>
           </div>
           
           <div className="space-y-3 px-4 pt-4">
             <button 
               onClick={handleManualShare}
-              className="w-full bg-[#06C755] text-white py-5 rounded-3xl font-black shadow-xl shadow-green-100 flex items-center justify-center gap-3 active:scale-95 transition-all"
+              className="w-full bg-[#06C755] text-white py-5 rounded-[2rem] font-black shadow-xl shadow-green-100 flex items-center justify-center gap-3 active:scale-95 transition-all"
             >
               <Share size={20} />
-              手動分享給團長
+              傳送給團長 (Line)
             </button>
             <button 
               onClick={() => setSubmitted(false)}
@@ -158,7 +170,7 @@ const BuyerForm: React.FC = () => {
                 <Loader2 size={48} className="text-primary animate-spin" />
                 <Send size={16} className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-primary" />
               </div>
-              <p className="text-sm font-black text-primary animate-pulse tracking-tight">正在同步委託資訊...</p>
+              <p className="text-sm font-black text-primary animate-pulse tracking-tight">正在準備同步代碼...</p>
             </div>
           )}
           
@@ -230,7 +242,7 @@ const BuyerForm: React.FC = () => {
             <button
               type="submit"
               disabled={isSending}
-              className="w-full bg-primary text-white py-5 rounded-3xl font-black shadow-xl shadow-primary/20 flex items-center justify-center gap-3 active:scale-95 transition-all disabled:opacity-50"
+              className="w-full bg-primary text-white py-5 rounded-[2rem] font-black shadow-xl shadow-primary/20 flex items-center justify-center gap-3 active:scale-95 transition-all disabled:opacity-50"
             >
               <Send size={20} />
               確認委託並自動同步

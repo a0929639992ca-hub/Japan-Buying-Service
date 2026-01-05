@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { OrderItem } from './types.ts';
 import Calculator from './components/Calculator.tsx';
@@ -7,7 +6,7 @@ import OrderList from './components/OrderList.tsx';
 import AIAssistant from './components/AIAssistant.tsx';
 import BuyerForm from './components/BuyerForm.tsx';
 import ImportModal from './components/ImportModal.tsx';
-import { Search, Calculator as CalcIcon, Share2, Plus, ChevronUp, ChevronDown, ClipboardPaste, Globe } from 'lucide-react';
+import { Search, Calculator as CalcIcon, Share2, Plus, ChevronUp, ChevronDown, ClipboardPaste, Globe, RefreshCcw } from 'lucide-react';
 
 const App: React.FC = () => {
   const [orders, setOrders] = useState<OrderItem[]>(() => {
@@ -20,7 +19,7 @@ const App: React.FC = () => {
   const [importData, setImportData] = useState<OrderItem | null>(null);
   const [viewMode, setViewMode] = useState<'admin' | 'buyer'>('admin');
   
-  // 用於追蹤本階段已拒絕或處理過的 ID，避免重複彈出
+  // 記錄本階段已處理的 ID
   const processedIds = useRef<Set<string>>(new Set());
 
   const parseImportData = (encodedData: string) => {
@@ -32,29 +31,29 @@ const App: React.FC = () => {
     }
   };
 
-  const checkClipboard = useCallback(async () => {
-    // 只有在畫面可見、沒有正在顯示彈窗時檢查
-    if (document.visibilityState !== 'visible' || importData) return;
+  const checkClipboard = useCallback(async (isManual = false) => {
+    // 如果已經在顯示彈窗，就不重複檢查
+    if (importData) return;
 
     try {
-      // 嘗試讀取剪貼簿
       const text = await navigator.clipboard.readText();
-      if (text.includes('importData=')) {
-        const match = text.match(/importData=([^&\s]+)/);
-        if (match && match[1]) {
-          const data = parseImportData(match[1]);
-          if (data && data.id && !processedIds.current.has(data.id)) {
-            // 檢查是否真的不在現有訂單中
-            const exists = orders.some(o => o.id === data.id);
-            if (!exists) {
-              setImportData(data);
-            }
+      const match = text.match(/importData=([^&\s]+)/);
+      if (match && match[1]) {
+        const data = parseImportData(match[1]);
+        if (data && data.id && !processedIds.current.has(data.id)) {
+          if (!orders.some(o => o.id === data.id)) {
+            setImportData(data);
+          } else if (isManual) {
+            alert('此委託單已在清單中');
           }
+        } else if (isManual && data) {
+          alert('此委託單剛才已嘗試處理過');
         }
+      } else if (isManual) {
+        alert('剪貼簿中沒有偵測到新的委託代碼');
       }
     } catch (e) {
-      // iOS 經常會擋住自動 readText，這是正常的
-      console.debug('Clipboard auto-read failed or denied');
+      if (isManual) alert('無法存取剪貼簿，請確保已授權。您也可以直接在螢幕上長按貼上。');
     }
   }, [importData, orders]);
 
@@ -65,17 +64,19 @@ const App: React.FC = () => {
       return;
     }
 
-    // 1. 處理 URL 直接啟動匯入
-    const encodedData = params.get('importData');
-    if (encodedData) {
-      const data = parseImportData(encodedData);
-      if (data) {
-        setImportData(data);
-        window.history.replaceState({}, '', window.location.pathname);
+    // 全局貼上監聽 (iOS 穩定收單關鍵)
+    const handleGlobalPaste = (e: ClipboardEvent) => {
+      const text = e.clipboardData?.getData('text');
+      if (text && text.includes('importData=')) {
+        const match = text.match(/importData=([^&\s]+)/);
+        if (match && match[1]) {
+          const data = parseImportData(match[1]);
+          if (data) setImportData(data);
+        }
       }
-    }
+    };
 
-    // 2. 定期檢查 LocalStorage (同裝置同瀏覽器同步)
+    // 定期輪詢 LocalStorage (同裝置同網頁同步)
     const checkQueue = () => {
       const queue = JSON.parse(localStorage.getItem('rento_external_queue') || '[]');
       if (queue.length > 0 && !importData) {
@@ -86,15 +87,13 @@ const App: React.FC = () => {
       }
     };
 
-    // 3. 監聽視窗顯示狀態改變 (切換 App 回來時觸發)
-    document.addEventListener('visibilitychange', checkClipboard);
-    window.addEventListener('focus', checkClipboard);
-    const timer = setInterval(checkQueue, 1000); // 縮短為 1 秒
+    window.addEventListener('paste', handleGlobalPaste);
+    document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') checkClipboard(); });
+    const timer = setInterval(checkQueue, 1500);
 
     return () => {
       clearInterval(timer);
-      document.removeEventListener('visibilitychange', checkClipboard);
-      window.removeEventListener('focus', checkClipboard);
+      window.removeEventListener('paste', handleGlobalPaste);
     };
   }, [importData, checkClipboard, orders]);
 
@@ -107,37 +106,27 @@ const App: React.FC = () => {
     setIsFormOpen(false);
   };
 
-  // 修正：新增遺失的 handleRemoveOrder 與 handleUpdateOrder 函式
   const handleRemoveOrder = (id: string) => {
-    setOrders((prev) => prev.filter((o) => o.id !== id));
+    if (confirm('確定要刪除嗎？')) {
+      setOrders((prev) => prev.filter((o) => o.id !== id));
+    }
   };
 
   const handleUpdateOrder = (id: string, updates: Partial<OrderItem>) => {
-    setOrders((prev) =>
-      prev.map((o) => (o.id === id ? { ...o, ...updates } : o))
-    );
+    setOrders((prev) => prev.map((o) => (o.id === id ? { ...o, ...updates } : o)));
   };
 
   const handleConfirmImport = (order: OrderItem) => {
     handleAddOrder(order);
     processedIds.current.add(order.id);
     setImportData(null);
-    
-    // 清除公共緩存池
     const queue = JSON.parse(localStorage.getItem('rento_external_queue') || '[]');
     localStorage.setItem('rento_external_queue', JSON.stringify(queue.filter((q: any) => q.id !== order.id)));
-    
-    // 嘗試清空剪貼簿，避免下次切換 App 又彈出同一筆
     try { navigator.clipboard.writeText(''); } catch(e) {}
   };
 
   const handleCancelImport = () => {
-    if (importData) {
-      processedIds.current.add(importData.id);
-      // 從緩存池中移除
-      const queue = JSON.parse(localStorage.getItem('rento_external_queue') || '[]');
-      localStorage.setItem('rento_external_queue', JSON.stringify(queue.filter((q: any) => q.id !== importData.id)));
-    }
+    if (importData) processedIds.current.add(importData.id);
     setImportData(null);
     try { navigator.clipboard.writeText(''); } catch(e) {}
   };
@@ -146,25 +135,6 @@ const App: React.FC = () => {
     const url = `${window.location.origin}${window.location.pathname}?mode=buyer`;
     navigator.clipboard.writeText(url);
     alert('買家填單連結已複製！');
-  };
-
-  const handleManualPaste = async () => {
-    try {
-      const text = await navigator.clipboard.readText();
-      const match = text.match(/importData=([^&\s]+)/);
-      if (match && match[1]) {
-        const data = parseImportData(match[1]);
-        if (data) {
-            setImportData(data);
-            // 手動點擊時，從已處理清單中移除（萬一使用者想重複匯入）
-            processedIds.current.delete(data.id);
-        }
-      } else {
-        alert('剪貼簿中沒有偵測到 Rento 代碼');
-      }
-    } catch (e) {
-      alert('請允許 App 存取剪貼簿，或手動在輸入框貼上代碼');
-    }
   };
 
   const filteredOrders = useMemo(() => {
@@ -190,8 +160,11 @@ const App: React.FC = () => {
       <header className="sticky top-0 z-40 bg-white/80 backdrop-blur-xl border-b border-gray-100">
         <div className="safe-pt"></div>
         <div className="max-w-4xl mx-auto px-5 py-4 flex justify-between items-center">
-          <div className="flex items-center gap-3">
-            <div className="bg-primary p-2 rounded-xl text-accent shadow-lg shadow-primary/20">
+          <button 
+            onClick={() => checkClipboard(true)}
+            className="flex items-center gap-3 active:scale-95 transition-all text-left group"
+          >
+            <div className="bg-primary p-2 rounded-xl text-accent shadow-lg shadow-primary/20 group-active:rotate-12 transition-transform">
               <Globe size={18} strokeWidth={2.5} className="animate-pulse" />
             </div>
             <div>
@@ -201,18 +174,18 @@ const App: React.FC = () => {
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
                   <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
                 </span>
-                <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Live Syncing</span>
+                <span className="text-[9px] font-black text-green-600 uppercase tracking-widest">即時感應中</span>
               </div>
             </div>
-          </div>
+          </button>
           
           <div className="flex items-center gap-2">
             <button 
-              onClick={handleManualPaste}
-              className="p-2.5 bg-gray-50 text-gray-400 rounded-xl hover:bg-indigo-50 hover:text-indigo-500 transition-all border border-gray-100 shadow-sm"
-              title="貼上收單"
+              onClick={() => setIsCalculatorOpen(true)}
+              className="p-2.5 bg-gray-50 text-gray-400 rounded-xl border border-gray-100 shadow-sm"
+              title="計算機"
             >
-              <ClipboardPaste size={18} />
+              <CalcIcon size={18} />
             </button>
             <button 
               onClick={handleCopyRequestLink} 
@@ -248,12 +221,9 @@ const App: React.FC = () => {
           >
             <div className="flex items-center gap-3">
               <Plus size={20} className={`text-primary transition-transform duration-300 ${isFormOpen ? 'rotate-45' : ''}`} />
-              <span className="font-bold text-sm text-gray-700">手動建立委託單</span>
+              <span className="font-bold text-sm text-gray-700">快速建立委託</span>
             </div>
-            <div className="flex items-center gap-2">
-               <button onClick={(e) => { e.stopPropagation(); setIsCalculatorOpen(true); }} className="p-1.5 bg-gray-50 rounded-lg text-gray-400"><CalcIcon size={14} /></button>
-               {isFormOpen ? <ChevronUp size={16} className="text-gray-300"/> : <ChevronDown size={16} className="text-gray-300"/>}
-            </div>
+            {isFormOpen ? <ChevronUp size={16} className="text-gray-300"/> : <ChevronDown size={16} className="text-gray-300"/>}
           </button>
           {isFormOpen && (
             <div className="border-t border-gray-50 bg-white">
@@ -278,6 +248,16 @@ const App: React.FC = () => {
           onRemoveOrder={handleRemoveOrder} 
           onUpdateOrder={handleUpdateOrder}
         />
+        
+        <div className="py-10 text-center">
+            <p className="text-[10px] text-gray-300 font-bold uppercase tracking-[0.2em] mb-4">無法自動收單？請嘗試在螢幕任意處貼上</p>
+            <button 
+                onClick={() => checkClipboard(true)}
+                className="inline-flex items-center gap-2 px-5 py-2.5 bg-gray-50 border border-gray-100 rounded-full text-xs font-bold text-gray-400 active:bg-gray-100"
+            >
+                <ClipboardPaste size={14} /> 強制檢查剪貼簿
+            </button>
+        </div>
       </main>
 
       <Calculator isOpen={isCalculatorOpen} onClose={() => setIsCalculatorOpen(false)} />
