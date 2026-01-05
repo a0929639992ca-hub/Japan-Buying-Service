@@ -4,7 +4,7 @@ import Calculator from './components/Calculator.tsx';
 import OrderForm from './components/OrderForm.tsx';
 import OrderList from './components/OrderList.tsx';
 import AIAssistant from './components/AIAssistant.tsx';
-import { JapaneseYen, Globe, Search, Banknote, Coins, Calculator as CalcIcon } from 'lucide-react';
+import { JapaneseYen, Flower2, Search, Banknote, Coins, Calculator as CalcIcon } from 'lucide-react';
 
 const App: React.FC = () => {
   const [orders, setOrders] = useState<OrderItem[]>(() => {
@@ -51,14 +51,14 @@ const App: React.FC = () => {
       <header className="sticky top-0 z-30 glass border-b border-gray-100">
         <div className="max-w-4xl mx-auto px-6 py-4 flex justify-between items-center">
           <div className="flex items-center gap-3">
-            <div className="bg-primary p-2 rounded-2xl text-white shadow-lg shadow-primary/20">
-              <Globe size={22} strokeWidth={2.5} />
+            <div className="bg-primary p-2 rounded-2xl text-white shadow-lg shadow-primary/30 ring-4 ring-primary/10">
+              <Flower2 size={22} strokeWidth={2.5} />
             </div>
             <div>
-              <h1 className="text-xl font-extrabold tracking-tight text-gray-900">
+              <h1 className="text-xl font-extrabold tracking-tight text-gray-900 leading-none">
                 SakuraProxy
               </h1>
-              <p className="text-[10px] text-gray-400 font-bold tracking-widest uppercase">Japan Concierge</p>
+              <p className="text-[10px] text-gray-400 font-bold tracking-widest uppercase mt-1">Japan Premium Proxy</p>
             </div>
           </div>
           

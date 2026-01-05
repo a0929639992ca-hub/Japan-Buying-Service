@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { Plus, Store, AlertCircle, Loader2, Contact, Image as ImageIcon, X, Sparkles } from 'lucide-react';
+import { Plus, PackagePlus, AlertCircle, Loader2, Contact, Image as ImageIcon, X, Sparkles } from 'lucide-react';
 import { HIDDEN_EXCHANGE_RATE } from '../constants.ts';
 import { OrderItem, OrderStatus } from '../types.ts';
 import { analyzeProduct } from '../services/geminiService.ts';
@@ -72,7 +72,7 @@ const OrderForm: React.FC<OrderFormProps> = ({ onAddOrder }) => {
       <div className="p-8 border-b border-gray-50 flex justify-between items-center">
         <div>
           <h2 className="text-xl font-black text-gray-900 flex items-center gap-2">
-            <Store className="text-primary" size={24} strokeWidth={2.5} />
+            <PackagePlus className="text-primary" size={24} strokeWidth={2.5} />
             快速委託
           </h2>
           <p className="text-xs text-gray-400 mt-1 font-bold tracking-tight uppercase">New Purchase Order</p>
