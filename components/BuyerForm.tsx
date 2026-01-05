@@ -3,14 +3,61 @@ import { Send, ShoppingBag, User, Image as ImageIcon, CheckCircle2, MessageSquar
 import { OrderStatus } from '../types.ts';
 import { decodeConfig, initCloud, sendOrderToCloud } from '../services/cloudService.ts';
 
+// 圖片壓縮函式
+const compressImage = (file: File): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = (event) => {
+      const img = new Image();
+      img.src = event.target?.result as string;
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        let width = img.width;
+        let height = img.height;
+        
+        // 限制最大寬高為 800px，大幅減少體積
+        const MAX_WIDTH = 800;
+        const MAX_HEIGHT = 800;
+
+        if (width > height) {
+          if (width > MAX_WIDTH) {
+            height *= MAX_WIDTH / width;
+            width = MAX_WIDTH;
+          }
+        } else {
+          if (height > MAX_HEIGHT) {
+            width *= MAX_HEIGHT / height;
+            height = MAX_HEIGHT;
+          }
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+            ctx.drawImage(img, 0, 0, width, height);
+            // 輸出為 JPEG，品質 0.6 (60%)
+            resolve(canvas.toDataURL('image/jpeg', 0.6));
+        } else {
+            resolve(event.target?.result as string); // Fallback
+        }
+      };
+      img.onerror = (err) => reject(err);
+    };
+    reader.onerror = (err) => reject(err);
+  });
+};
+
 const BuyerForm: React.FC = () => {
   const [buyerName, setBuyerName] = useState('');
   const [productName, setProductName] = useState('');
   const [notes, setNotes] = useState('');
-  const [qty, setQty] = useState(''); // 移除預設值 '1'
+  const [qty, setQty] = useState('');
   const [imageUrl, setImageUrl] = useState('');
   const [isSending, setIsSending] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [isCompressing, setIsCompressing] = useState(false);
   
   // 模式：cloud (直連) 或 manual (複製代碼)
   const [submitMode, setSubmitMode] = useState<'cloud' | 'manual'>('manual');
@@ -36,12 +83,19 @@ const BuyerForm: React.FC = () => {
     }
   }, []);
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => setImageUrl(reader.result as string);
-      reader.readAsDataURL(file);
+      setIsCompressing(true);
+      try {
+        const compressedDataUrl = await compressImage(file);
+        setImageUrl(compressedDataUrl);
+      } catch (err) {
+        console.error("Image compression failed", err);
+        alert("圖片處理失敗，請試著換一張圖");
+      } finally {
+        setIsCompressing(false);
+      }
     }
   };
 
@@ -184,14 +238,14 @@ const BuyerForm: React.FC = () => {
 
       <main className="max-w-xl mx-auto p-5">
         <div className="bg-white rounded-[2.5rem] shadow-xl shadow-slate-200/50 border border-white overflow-hidden relative">
-          {isSending && (
+          {(isSending || isCompressing) && (
             <div className="absolute inset-0 z-50 bg-white/90 backdrop-blur-sm flex flex-col items-center justify-center space-y-4 animate-fade-in">
               <div className="relative">
                 <div className="absolute inset-0 bg-indigo-500 blur-xl opacity-20 rounded-full animate-pulse"></div>
                 <Loader2 size={48} className="text-indigo-600 animate-spin relative" />
               </div>
               <p className="text-sm font-black text-indigo-900 animate-pulse tracking-tight">
-                  {submitMode === 'cloud' ? '正在傳送至雲端...' : '正在建立委託單...'}
+                  {isCompressing ? '正在處理圖片...' : (submitMode === 'cloud' ? '正在傳送至雲端...' : '正在建立委託單...')}
               </p>
             </div>
           )}
@@ -289,7 +343,7 @@ const BuyerForm: React.FC = () => {
 
             <button
               type="submit"
-              disabled={isSending}
+              disabled={isSending || isCompressing}
               className={`w-full text-white py-5 rounded-[2rem] font-black shadow-xl flex items-center justify-center gap-3 active:scale-95 transition-all disabled:opacity-50 disabled:active:scale-100 hover:shadow-2xl hover:-translate-y-1 ${submitMode === 'cloud' ? 'bg-indigo-600 shadow-indigo-200 hover:shadow-indigo-300' : 'bg-slate-800 shadow-slate-300 hover:shadow-slate-400'}`}
             >
               {submitMode === 'cloud' ? <CloudLightning size={20} className={isSending ? "animate-pulse" : ""} /> : <Send size={20} />}

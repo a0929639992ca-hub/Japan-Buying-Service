@@ -93,9 +93,17 @@ const App: React.FC = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // 4. 持久化訂單
+  // 4. 持久化訂單 (增加錯誤處理防止崩潰)
   useEffect(() => {
-    localStorage.setItem('sakura_orders', JSON.stringify(orders));
+    try {
+      localStorage.setItem('sakura_orders', JSON.stringify(orders));
+    } catch (e) {
+      console.error("Storage Save Error:", e);
+      // 如果是因為容量滿了，提示使用者
+      if (e instanceof DOMException && (e.name === 'QuotaExceededError' || e.name === 'NS_ERROR_DOM_QUOTA_REACHED')) {
+         alert("⚠️ 儲存空間已滿！\n\n您的訂單圖片可能過多，導致無法儲存新資料。\n建議您刪除一些舊的「已完成」訂單以釋放空間。");
+      }
+    }
   }, [orders]);
 
 

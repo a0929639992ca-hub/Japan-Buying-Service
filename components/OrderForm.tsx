@@ -8,6 +8,47 @@ interface OrderFormProps {
   onAddOrder: (order: OrderItem) => void;
 }
 
+// 圖片壓縮函式 (重複使用邏輯)
+const compressImage = (file: File): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = (event) => {
+      const img = new Image();
+      img.src = event.target?.result as string;
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        let width = img.width;
+        let height = img.height;
+        const MAX_WIDTH = 800;
+        const MAX_HEIGHT = 800;
+        if (width > height) {
+          if (width > MAX_WIDTH) {
+            height *= MAX_WIDTH / width;
+            width = MAX_WIDTH;
+          }
+        } else {
+          if (height > MAX_HEIGHT) {
+            width *= MAX_HEIGHT / height;
+            height = MAX_HEIGHT;
+          }
+        }
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+            ctx.drawImage(img, 0, 0, width, height);
+            resolve(canvas.toDataURL('image/jpeg', 0.6));
+        } else {
+            resolve(event.target?.result as string);
+        }
+      };
+      img.onerror = (err) => reject(err);
+    };
+    reader.onerror = (err) => reject(err);
+  });
+};
+
 const OrderForm: React.FC<OrderFormProps> = ({ onAddOrder }) => {
   const [buyerName, setBuyerName] = useState('');
   const [imageUrl, setImageUrl] = useState<string>('');
@@ -15,6 +56,7 @@ const OrderForm: React.FC<OrderFormProps> = ({ onAddOrder }) => {
   const [price, setPrice] = useState('');
   const [qty, setQty] = useState('1');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [isCompressing, setIsCompressing] = useState(false);
   const [analysisResult, setAnalysisResult] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -22,12 +64,18 @@ const OrderForm: React.FC<OrderFormProps> = ({ onAddOrder }) => {
     ? Math.ceil(parseFloat(price) * parseFloat(qty) * HIDDEN_EXCHANGE_RATE) 
     : 0;
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => setImageUrl(reader.result as string);
-      reader.readAsDataURL(file);
+      setIsCompressing(true);
+      try {
+        const compressed = await compressImage(file);
+        setImageUrl(compressed);
+      } catch(e) {
+        console.error(e);
+      } finally {
+        setIsCompressing(false);
+      }
     }
   };
 
@@ -68,7 +116,13 @@ const OrderForm: React.FC<OrderFormProps> = ({ onAddOrder }) => {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="p-6 space-y-5 animate-slide-in">
+    <form onSubmit={handleSubmit} className="p-6 space-y-5 animate-slide-in relative">
+      {isCompressing && (
+        <div className="absolute inset-0 bg-white/80 z-20 flex items-center justify-center">
+            <Loader2 className="animate-spin text-indigo-500" />
+        </div>
+      )}
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
         <div className="space-y-4">
           <div className="space-y-1.5">
@@ -163,7 +217,7 @@ const OrderForm: React.FC<OrderFormProps> = ({ onAddOrder }) => {
           <p className="text-[9px] text-gray-400 font-bold uppercase tracking-widest mb-0.5">預估總額</p>
           <div className="text-xl font-black text-gray-900 tracking-tight">NT$ {estimatedTotal.toLocaleString()}</div>
         </div>
-        <button type="submit" className="bg-primary text-white hover:bg-primary/90 px-8 py-3.5 rounded-xl font-black text-xs transition-all flex items-center gap-2 shadow-lg shadow-primary/20">
+        <button type="submit" disabled={isCompressing} className="bg-primary text-white hover:bg-primary/90 px-8 py-3.5 rounded-xl font-black text-xs transition-all flex items-center gap-2 shadow-lg shadow-primary/20 disabled:opacity-50">
           <Plus size={16} strokeWidth={3} /> 加入名單
         </button>
       </div>
