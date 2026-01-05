@@ -1,14 +1,24 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { HIDDEN_EXCHANGE_RATE } from "../constants.ts";
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 const MODEL_NAME = 'gemini-3-flash-preview';
+
+// 懶載入實例，避免在模組載入時因 API Key 空值或 process 未定義而崩潰
+let aiInstance: GoogleGenAI | null = null;
+
+const getAI = (): GoogleGenAI => {
+  if (!aiInstance) {
+    aiInstance = new GoogleGenAI({ apiKey: process.env.API_KEY || "" });
+  }
+  return aiInstance;
+};
 
 /**
  * AI 智慧解析：從一段雜亂的文字（如 Line 對話）中提取訂單資訊
  */
 export const parseOrderFromText = async (text: string): Promise<any | null> => {
   try {
+    const ai = getAI();
     const response = await ai.models.generateContent({
       model: MODEL_NAME,
       contents: `分析以下代購委託文字，提取出 JSON 格式的訂單資訊。
@@ -57,6 +67,7 @@ export const generateAssistantResponse = async (
   history: { role: string; text: string }[]
 ): Promise<string> => {
   try {
+    const ai = getAI();
     const chat = ai.chats.create({
       model: MODEL_NAME,
       config: {
@@ -67,12 +78,14 @@ export const generateAssistantResponse = async (
     const result = await chat.sendMessage({ message: prompt });
     return result.text || "抱歉，我暫時無法回答。";
   } catch (error) {
-    return "連線不穩定，請稍後。";
+    console.error(error);
+    return "連線不穩定或 API Key 未設定。";
   }
 };
 
 export const analyzeProduct = async (name: string, base64Image?: string): Promise<string> => {
    try {
+    const ai = getAI();
     const parts: any[] = [{ text: `分析代購商品: ${name || "未提供名稱"}` }];
     if (base64Image) {
       parts.push({ inlineData: { mimeType: "image/jpeg", data: base64Image.split(',')[1] || base64Image } });
@@ -83,6 +96,7 @@ export const analyzeProduct = async (name: string, base64Image?: string): Promis
     });
     return response.text || "無法分析。";
   } catch (error) {
+    console.error(error);
     return "分析不可用。";
   }
 }

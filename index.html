@@ -16,6 +16,8 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
     <script>
       window.process = { env: { API_KEY: "" } };
+      // 確保 process 在全域範圍內可用，避免模組中存取 process.env 時發生 ReferenceError
+      var process = window.process;
       
       tailwind.config = {
         theme: {
