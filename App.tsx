@@ -7,7 +7,7 @@ import AIAssistant from './components/AIAssistant.tsx';
 import BuyerForm from './components/BuyerForm.tsx';
 import { parseOrderFromText } from './services/geminiService.ts';
 import { initCloud, subscribeToInbox, encodeConfig, FirebaseConfig } from './services/cloudService.ts';
-import { Search, Calculator as CalcIcon, Share2, Plus, ChevronUp, ChevronDown, ClipboardPaste, Zap, Loader2, Banknote, Bell, Inbox, X, Check, Cloud } from 'lucide-react';
+import { Search, Calculator as CalcIcon, Share2, Plus, ChevronUp, ChevronDown, ClipboardPaste, Zap, Loader2, Banknote, Bell, Inbox, X, Check, Cloud, Sun, Lock } from 'lucide-react';
 
 // 硬寫入的 Firebase 設定
 const FIREBASE_CONFIG: FirebaseConfig = {
@@ -40,6 +40,7 @@ const App: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [viewMode, setViewMode] = useState<'admin' | 'buyer'>('admin');
   const [isAISensing, setIsAISensing] = useState(false);
+  const [isWakeLockActive, setIsWakeLockActive] = useState(false);
   
   // --- 雲端設定狀態 ---
   const [storeId] = useState(() => {
@@ -52,6 +53,7 @@ const App: React.FC = () => {
 
   const lastClipboardText = useRef<string>('');
   const inboxRef = useRef<HTMLDivElement>(null);
+  const wakeLockRef = useRef<any>(null);
 
   // --- 初始化與監聽 ---
 
@@ -65,7 +67,7 @@ const App: React.FC = () => {
         if (permission === 'granted') {
           new Notification('通知已啟用', { 
             body: '當收到新委託時，Rento 會傳送通知給您。',
-            icon: 'https://cdn-icons-png.flaticon.com/512/3119/3119338.png' // 簡單的 Icon 示意
+            icon: 'https://cdn-icons-png.flaticon.com/512/3119/3119338.png'
           });
         }
       } catch (err) {
@@ -73,6 +75,53 @@ const App: React.FC = () => {
       }
     }
   }, []);
+
+  // 處理螢幕喚醒鎖 (Wake Lock)
+  const toggleWakeLock = async () => {
+    if ('wakeLock' in navigator) {
+      if (!isWakeLockActive) {
+        try {
+          const wakeLock = await (navigator as any).wakeLock.request('screen');
+          wakeLockRef.current = wakeLock;
+          setIsWakeLockActive(true);
+          wakeLock.addEventListener('release', () => {
+            setIsWakeLockActive(false);
+            console.log('Wake Lock released');
+          });
+          console.log('Wake Lock active');
+        } catch (err) {
+          console.error(`${err.name}, ${err.message}`);
+          alert("無法啟用螢幕恆亮，可能是電量過低或系統限制。");
+        }
+      } else {
+        if (wakeLockRef.current) {
+          await wakeLockRef.current.release();
+          wakeLockRef.current = null;
+          setIsWakeLockActive(false);
+        }
+      }
+    } else {
+      alert("您的瀏覽器不支援螢幕喚醒功能。");
+    }
+  };
+
+  // 當 App 重新回到前景時，嘗試重新獲取 Wake Lock
+  useEffect(() => {
+    const handleVisibilityChange = async () => {
+      if (document.visibilityState === 'visible' && isWakeLockActive) {
+         // 如果原本是開啟狀態，回來時嘗試重新鎖定
+         try {
+            const wakeLock = await (navigator as any).wakeLock.request('screen');
+            wakeLockRef.current = wakeLock;
+         } catch(e) { 
+             console.log("Re-acquire wake lock failed", e);
+             setIsWakeLockActive(false);
+         }
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [isWakeLockActive]);
 
   // 1. 初始化雲端連線 (使用硬寫的 Config)
   useEffect(() => {
@@ -93,14 +142,12 @@ const App: React.FC = () => {
               // 2. 觸發系統通知 (如果已授權)
               if ('Notification' in window && Notification.permission === 'granted') {
                 try {
-                    // 嘗試震動 (Android Only)
                     if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
-                    
                     new Notification(`收到新委託！`, {
                         body: `${newOrder.buyerName} 想要買：${newOrder.productName}`,
-                        icon: newOrder.imageUrl, // 嘗試顯示商品圖
-                        tag: newOrder.id, // 防止重複顯示
-                        requireInteraction: true // 讓通知停留在螢幕上直到使用者點擊
+                        icon: newOrder.imageUrl, 
+                        tag: newOrder.id,
+                        requireInteraction: true
                     });
                 } catch(e) {
                     console.error("Notification trigger failed", e);
@@ -283,6 +330,15 @@ const App: React.FC = () => {
           </div>
           
           <div className="flex items-center gap-2">
+            {/* Wake Lock Button */}
+            <button 
+                onClick={toggleWakeLock}
+                className={`p-3 rounded-2xl transition-all shadow-sm active:scale-90 ${isWakeLockActive ? 'bg-amber-400 text-slate-900 shadow-amber-200' : 'bg-white border border-slate-200 text-slate-400 hover:text-amber-500'}`}
+                title={isWakeLockActive ? "螢幕保持開啟中" : "啟用螢幕保持開啟"}
+            >
+                {isWakeLockActive ? <Sun size={18} fill="currentColor" /> : <Lock size={18} />}
+            </button>
+
             <div className="relative" ref={inboxRef}>
                 <button 
                     onClick={() => {
