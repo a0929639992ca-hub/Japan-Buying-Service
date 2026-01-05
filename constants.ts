@@ -1,7 +1,7 @@
 // 預設匯率設定 - 不會在 UI 上直接顯示
 export const HIDDEN_EXCHANGE_RATE = 0.25;
 
-export const APP_NAME = "SakuraProxy";
+export const APP_NAME = "Rento 代購團";
 
 export const STATUS_LABELS: Record<string, string> = {
   pending: "等待報價/付款",

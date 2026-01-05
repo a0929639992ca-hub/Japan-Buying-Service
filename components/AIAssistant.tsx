@@ -9,7 +9,7 @@ const AIAssistant: React.FC = () => {
     {
       id: 'welcome',
       role: 'model',
-      text: '你好！我是 Sakura AI。想買什麼日本商品嗎？我可以幫你翻譯商品說明，或是確認能不能寄送喔！🌸',
+      text: '你好！我是 Rento AI。想買什麼日本商品嗎？我可以幫你翻譯商品說明，或是確認能不能寄送喔！🌸',
       timestamp: Date.now()
     }
   ]);
@@ -81,7 +81,7 @@ const AIAssistant: React.FC = () => {
                 <Wand2 size={20} className="text-white" />
             </div>
             <div>
-                <h3 className="font-bold text-sm">Sakura AI 助理</h3>
+                <h3 className="font-bold text-sm">Rento AI 助理</h3>
                 <p className="text-xs text-white/80 flex items-center gap-1">
                     <span className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse"></span>
                     Gemini 支援中

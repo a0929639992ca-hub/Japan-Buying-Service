@@ -56,7 +56,7 @@ const App: React.FC = () => {
             </div>
             <div>
               <h1 className="text-xl font-extrabold tracking-tight text-gray-900 leading-none">
-                SakuraProxy
+                Rento 代購團
               </h1>
               <p className="text-[10px] text-gray-400 font-bold tracking-widest uppercase mt-1">Japan Premium Proxy</p>
             </div>

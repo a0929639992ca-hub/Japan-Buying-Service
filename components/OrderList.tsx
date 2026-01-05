@@ -51,7 +51,7 @@ const OrderList: React.FC<OrderListProps> = ({ orders, onRemoveOrder, onUpdateOr
 
   const copySummary = (name: string, items: OrderItem[]) => {
     const total = items.reduce((sum, i) => sum + i.calculatedPrice, 0);
-    const text = `🌸 SakuraProxy 代購清單 - ${name}\n` +
+    const text = `🌸 Rento 代購團 代購清單 - ${name}\n` +
       `--------------------------\n` +
       items.map(i => `• ${i.productName} (x${i.requestedQuantity}): NT$ ${i.calculatedPrice}`).join('\n') +
       `\n--------------------------\n總計: NT$ ${total.toLocaleString()}`;

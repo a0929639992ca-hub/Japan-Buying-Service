@@ -26,7 +26,7 @@ export const generateAssistantResponse = async (
       model: MODEL_TEXT,
       config: {
         systemInstruction: `
-          你是一位專業的日本代購小幫手，名叫 "Sakura AI"。
+          你是一位專業的日本代購小幫手，名叫 "Rento AI 助理"。
           你的職責是：
           1. 協助使用者翻譯日文商品說明成繁體中文。
           2. 幫忙確認商品是否為國際禁運品。
