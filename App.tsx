@@ -245,7 +245,7 @@ const App: React.FC = () => {
                     )}
                 </button>
                 {isInboxOpen && (
-                    <div className="absolute top-full right-0 mt-3 w-80 sm:w-96 bg-white rounded-[2rem] shadow-2xl border border-slate-100 overflow-hidden animate-slide-in origin-top-right z-50">
+                    <div className="fixed top-24 left-4 right-4 w-auto sm:absolute sm:top-full sm:right-0 sm:left-auto sm:w-96 sm:mt-3 bg-white rounded-[2rem] shadow-2xl border border-slate-100 overflow-hidden animate-slide-in origin-top sm:origin-top-right z-50">
                         <div className="p-4 border-b border-slate-100 bg-slate-50/50 flex justify-between items-center">
                             <div className="flex items-center gap-2 text-slate-800">
                                 <Inbox size={16} />
