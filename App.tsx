@@ -55,6 +55,25 @@ const App: React.FC = () => {
 
   // --- 初始化與監聽 ---
 
+  // 請求通知權限的函式
+  const requestNotificationPermission = useCallback(async () => {
+    if (!('Notification' in window)) return;
+    
+    if (Notification.permission === 'default') {
+      try {
+        const permission = await Notification.requestPermission();
+        if (permission === 'granted') {
+          new Notification('通知已啟用', { 
+            body: '當收到新委託時，Rento 會傳送通知給您。',
+            icon: 'https://cdn-icons-png.flaticon.com/512/3119/3119338.png' // 簡單的 Icon 示意
+          });
+        }
+      } catch (err) {
+        console.error("Notification permission error:", err);
+      }
+    }
+  }, []);
+
   // 1. 初始化雲端連線 (使用硬寫的 Config)
   useEffect(() => {
     const success = initCloud(FIREBASE_CONFIG);
@@ -65,14 +84,35 @@ const App: React.FC = () => {
            // 檢查是否已存在 (避免重複)
            setInboxItems(prev => {
               if (prev.some(p => p.id === newOrder.id) || orders.some(o => o.id === newOrder.id)) return prev;
-              // 播放音效
+              
+              // --- 收到新訂單的效果 ---
+              
+              // 1. 播放音效
               try { new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3').play().catch(()=>{}); } catch(e){}
+              
+              // 2. 觸發系統通知 (如果已授權)
+              if ('Notification' in window && Notification.permission === 'granted') {
+                try {
+                    // 嘗試震動 (Android Only)
+                    if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
+                    
+                    new Notification(`收到新委託！`, {
+                        body: `${newOrder.buyerName} 想要買：${newOrder.productName}`,
+                        icon: newOrder.imageUrl, // 嘗試顯示商品圖
+                        tag: newOrder.id, // 防止重複顯示
+                        requireInteraction: true // 讓通知停留在螢幕上直到使用者點擊
+                    });
+                } catch(e) {
+                    console.error("Notification trigger failed", e);
+                }
+              }
+
               return [newOrder, ...prev];
            });
       });
       return () => unsubscribe(); // Cleanup
     }
-  }, [storeId, orders]); // Add orders to dependency to check duplication accurately
+  }, [storeId, orders]); 
 
   // 2. 處理買家模式路由
   useEffect(() => {
@@ -99,7 +139,6 @@ const App: React.FC = () => {
       localStorage.setItem('sakura_orders', JSON.stringify(orders));
     } catch (e) {
       console.error("Storage Save Error:", e);
-      // 如果是因為容量滿了，提示使用者
       if (e instanceof DOMException && (e.name === 'QuotaExceededError' || e.name === 'NS_ERROR_DOM_QUOTA_REACHED')) {
          alert("⚠️ 儲存空間已滿！\n\n您的訂單圖片可能過多，導致無法儲存新資料。\n建議您刪除一些舊的「已完成」訂單以釋放空間。");
       }
@@ -114,7 +153,6 @@ const App: React.FC = () => {
     let shareUrl = `${baseUrl}?mode=buyer`;
 
     if (isCloudConnected) {
-       // 將設定與 StoreID 附帶在 URL 中
        const payload = encodeConfig(FIREBASE_CONFIG, storeId);
        shareUrl += `&connect=${payload}`;
     }
@@ -131,7 +169,7 @@ const App: React.FC = () => {
     } catch (e) { return null; }
   };
 
-  // 剪貼簿監聽 (保留作為備用方案)
+  // 剪貼簿監聽
   const masterSensor = useCallback(async () => {
     if (isAISensing || !navigator.clipboard?.readText) return;
     try {
@@ -172,8 +210,6 @@ const App: React.FC = () => {
   };
 
   const handleAcceptInboxItem = (item: OrderItem) => {
-    // 關鍵修正：資料淨化 (Sanitization)
-    // 確保所有數值欄位都是有效的數字，避免渲染時因為 undefined 而當機
     const safeItem: OrderItem = {
         ...item,
         originalPriceJpy: Number(item.originalPriceJpy) || 0,
@@ -249,7 +285,10 @@ const App: React.FC = () => {
           <div className="flex items-center gap-2">
             <div className="relative" ref={inboxRef}>
                 <button 
-                    onClick={() => setIsInboxOpen(!isInboxOpen)}
+                    onClick={() => {
+                        setIsInboxOpen(!isInboxOpen);
+                        requestNotificationPermission(); // 點擊收件匣時順便請求權限
+                    }}
                     className={`p-3 rounded-2xl transition-all shadow-sm active:scale-90 relative ${inboxItems.length > 0 ? 'bg-indigo-600 text-white shadow-indigo-200' : 'bg-white border border-slate-200 text-slate-400 hover:text-indigo-600'}`}
                 >
                     <Bell size={18} fill={inboxItems.length > 0 ? "currentColor" : "none"} />
@@ -272,6 +311,7 @@ const App: React.FC = () => {
                             {inboxItems.length === 0 ? (
                                 <div className="py-8 text-center text-slate-400">
                                     <p className="text-xs">目前沒有新委託</p>
+                                    <p className="text-[10px] text-slate-300 mt-2">點擊上方鈴鐺可開啟通知權限</p>
                                 </div>
                             ) : (
                                 inboxItems.map(item => (
