@@ -7,7 +7,18 @@ import AIAssistant from './components/AIAssistant.tsx';
 import BuyerForm from './components/BuyerForm.tsx';
 import { parseOrderFromText } from './services/geminiService.ts';
 import { initCloud, subscribeToInbox, encodeConfig, FirebaseConfig } from './services/cloudService.ts';
-import { Search, Calculator as CalcIcon, Share2, Plus, ChevronUp, ChevronDown, ClipboardPaste, Zap, Loader2, Banknote, Bell, Inbox, X, Check, Cloud, Settings, AlertTriangle, ExternalLink, HelpCircle } from 'lucide-react';
+import { Search, Calculator as CalcIcon, Share2, Plus, ChevronUp, ChevronDown, ClipboardPaste, Zap, Loader2, Banknote, Bell, Inbox, X, Check, Cloud } from 'lucide-react';
+
+// 硬寫入的 Firebase 設定
+const FIREBASE_CONFIG: FirebaseConfig = {
+  apiKey: "AIzaSyBwRgn0_jCELNK-RO9x3VRhuj2CZsvjpnY",
+  authDomain: "rento-buying-service.firebaseapp.com",
+  databaseURL: "https://rento-buying-service-default-rtdb.firebaseio.com",
+  projectId: "rento-buying-service",
+  storageBucket: "rento-buying-service.firebasestorage.app",
+  messagingSenderId: "322880924352",
+  appId: "1:322880924352:web:eb6e84cf8940e001405b25"
+};
 
 const App: React.FC = () => {
   // --- 狀態管理 ---
@@ -29,38 +40,32 @@ const App: React.FC = () => {
     if (!sid) { sid = crypto.randomUUID().split('-')[0]; localStorage.setItem('rento_store_id', sid); }
     return sid;
   });
-  const [firebaseConfig, setFirebaseConfig] = useState<FirebaseConfig | null>(() => {
-    try { return JSON.parse(localStorage.getItem('rento_firebase_config') || 'null'); } catch { return null; }
-  });
+  
   const [isCloudConnected, setIsCloudConnected] = useState(false);
-  const [showConfigModal, setShowConfigModal] = useState(false);
-  const [configInput, setConfigInput] = useState('');
 
   const lastClipboardText = useRef<string>('');
   const inboxRef = useRef<HTMLDivElement>(null);
 
   // --- 初始化與監聽 ---
 
-  // 1. 初始化雲端連線
+  // 1. 初始化雲端連線 (使用硬寫的 Config)
   useEffect(() => {
-    if (firebaseConfig) {
-      const success = initCloud(firebaseConfig);
-      setIsCloudConnected(success);
-      if (success) {
-        // 訂閱雲端收件匣
-        const unsubscribe = subscribeToInbox(storeId, (newOrder) => {
-             // 檢查是否已存在 (避免重複)
-             setInboxItems(prev => {
-                if (prev.some(p => p.id === newOrder.id) || orders.some(o => o.id === newOrder.id)) return prev;
-                // 播放音效
-                try { new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3').play().catch(()=>{}); } catch(e){}
-                return [newOrder, ...prev];
-             });
-        });
-        return () => unsubscribe(); // Cleanup
-      }
+    const success = initCloud(FIREBASE_CONFIG);
+    setIsCloudConnected(success);
+    if (success) {
+      // 訂閱雲端收件匣
+      const unsubscribe = subscribeToInbox(storeId, (newOrder) => {
+           // 檢查是否已存在 (避免重複)
+           setInboxItems(prev => {
+              if (prev.some(p => p.id === newOrder.id) || orders.some(o => o.id === newOrder.id)) return prev;
+              // 播放音效
+              try { new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3').play().catch(()=>{}); } catch(e){}
+              return [newOrder, ...prev];
+           });
+      });
+      return () => unsubscribe(); // Cleanup
     }
-  }, [firebaseConfig, storeId, orders]); // Add orders to dependency to check duplication accurately
+  }, [storeId, orders]); // Add orders to dependency to check duplication accurately
 
   // 2. 處理買家模式路由
   useEffect(() => {
@@ -89,55 +94,19 @@ const App: React.FC = () => {
 
   // --- 功能函式 ---
 
-  const handleSaveConfig = () => {
-    try {
-      let jsonStr = configInput.trim();
-      
-      // 1. 移除 JavaScript 宣告 (const firebaseConfig = )
-      if (jsonStr.includes('=')) {
-        jsonStr = jsonStr.split('=')[1].trim();
-      }
-      // 2. 移除結尾分號
-      if (jsonStr.endsWith(';')) {
-        jsonStr = jsonStr.slice(0, -1).trim();
-      }
-      
-      // 3. 嘗試修正 JS Object 語法變成標準 JSON (處理無引號的 key)
-      // 將 key: "value" 變成 "key": "value"
-      jsonStr = jsonStr.replace(/([{,]\s*)([a-zA-Z0-9_]+)(\s*:)/g, '$1"$2"$3');
-      // 將單引號變雙引號
-      jsonStr = jsonStr.replace(/'/g, '"');
-      // 移除尾端多餘的逗號
-      jsonStr = jsonStr.replace(/,(\s*})/g, '$1');
-
-      const config = JSON.parse(jsonStr);
-      
-      if (!config.databaseURL) throw new Error("缺少 databaseURL");
-
-      localStorage.setItem('rento_firebase_config', JSON.stringify(config));
-      setFirebaseConfig(config);
-      setShowConfigModal(false);
-      alert("設定已儲存！雲端同步功能啟動中...");
-      window.location.reload(); 
-    } catch (e) {
-      console.error(e);
-      alert("無法解析設定檔。請確保您複製了完整的程式碼片段 (包含大括號)。");
-    }
-  };
-
   const handleShareLink = () => {
     const baseUrl = `${window.location.origin}${window.location.pathname}`;
     let shareUrl = `${baseUrl}?mode=buyer`;
 
-    if (isCloudConnected && firebaseConfig) {
-       // 如果有雲端設定，將加密後的設定與 StoreID 附帶在 URL 中
-       const payload = encodeConfig(firebaseConfig, storeId);
+    if (isCloudConnected) {
+       // 將設定與 StoreID 附帶在 URL 中
+       const payload = encodeConfig(FIREBASE_CONFIG, storeId);
        shareUrl += `&connect=${payload}`;
     }
 
     if (navigator.clipboard?.writeText) {
       navigator.clipboard.writeText(shareUrl);
-      alert(isCloudConnected ? '已複製「雲端直連」連結！買家填單後您會直接收到。' : '已複製連結 (尚未設定雲端，買家需手動回傳代碼)。');
+      alert(isCloudConnected ? '已複製「雲端直連」連結！買家填單後您會直接收到。' : '連線異常，請稍後再試。');
     }
   };
 
@@ -188,14 +157,29 @@ const App: React.FC = () => {
   };
 
   const handleAcceptInboxItem = (item: OrderItem) => {
-    setOrders(prev => [item, ...prev]);
-    setInboxItems(prev => prev.filter(i => i.id !== item.id)); // 記憶體中移除
-    if (inboxItems.length === 1) setIsInboxOpen(false);
+    // 關鍵修正：資料淨化 (Sanitization)
+    // 確保所有數值欄位都是有效的數字，避免渲染時因為 undefined 而當機
+    const safeItem: OrderItem = {
+        ...item,
+        originalPriceJpy: Number(item.originalPriceJpy) || 0,
+        requestedQuantity: Number(item.requestedQuantity) || 1,
+        purchasedQuantity: Number(item.purchasedQuantity) || 0,
+        calculatedPrice: Number(item.calculatedPrice) || 0,
+        buyerName: item.buyerName || '未知買家',
+        productName: item.productName || '未知商品',
+        status: item.status || 'pending',
+        isPaid: !!item.isPaid,
+        id: item.id || `cloud-${Date.now()}`
+    };
+
+    setOrders(prev => [safeItem, ...prev]);
+    setInboxItems(prev => prev.filter(i => i.id !== item.id)); 
+    if (inboxItems.length <= 1) setIsInboxOpen(false);
   };
 
   const handleRejectInboxItem = (id: string) => {
     setInboxItems(prev => prev.filter(i => i.id !== id));
-    if (inboxItems.length === 1) setIsInboxOpen(false);
+    if (inboxItems.length <= 1) setIsInboxOpen(false);
   };
 
   const stats = useMemo(() => ({
@@ -235,7 +219,7 @@ const App: React.FC = () => {
                  {isCloudConnected ? (
                     <>
                         <span className="flex h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                        <span className="text-[9px] font-black text-emerald-600 uppercase tracking-widest">Cloud Sync</span>
+                        <span className="text-[9px] font-black text-emerald-600 uppercase tracking-widest">Cloud Active</span>
                     </>
                  ) : (
                     <>
@@ -248,13 +232,6 @@ const App: React.FC = () => {
           </div>
           
           <div className="flex items-center gap-2">
-            <button 
-                onClick={() => setShowConfigModal(true)}
-                className={`p-3 rounded-2xl transition-all shadow-sm active:scale-90 ${isCloudConnected ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 'bg-white border border-slate-200 text-slate-400'}`}
-            >
-                <Cloud size={18} strokeWidth={isCloudConnected ? 2.5 : 2} />
-            </button>
-
             <div className="relative" ref={inboxRef}>
                 <button 
                     onClick={() => setIsInboxOpen(!isInboxOpen)}
@@ -316,64 +293,6 @@ const App: React.FC = () => {
         </div>
       </header>
 
-      {/* Cloud Config Modal */}
-      {showConfigModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fade-in">
-            <div className="bg-white rounded-3xl w-full max-w-lg overflow-hidden shadow-2xl flex flex-col max-h-[90vh]">
-                <div className="p-5 bg-slate-50 border-b border-slate-100 flex justify-between items-center shrink-0">
-                    <h3 className="font-black text-lg text-slate-800 flex items-center gap-2"><Cloud size={20} className="text-indigo-600"/> 雲端同步設定</h3>
-                    <button onClick={() => setShowConfigModal(false)}><X size={20} className="text-slate-400 hover:text-slate-600"/></button>
-                </div>
-                
-                <div className="p-6 overflow-y-auto space-y-6">
-                    <div className="space-y-4">
-                        <div className="flex items-start gap-3">
-                            <div className="w-6 h-6 rounded-full bg-slate-200 text-slate-600 font-bold flex items-center justify-center text-xs shrink-0">1</div>
-                            <div className="text-sm text-slate-600 leading-relaxed">
-                                前往 <a href="https://console.firebase.google.com" target="_blank" className="text-indigo-600 font-bold hover:underline">Firebase Console</a>，點擊左上角「專案總覽」旁的<span className="inline-block mx-1 bg-slate-200 rounded p-1"><Settings size={12}/></span>齒輪圖示，選擇「專案設定」。
-                            </div>
-                        </div>
-                        <div className="flex items-start gap-3">
-                            <div className="w-6 h-6 rounded-full bg-slate-200 text-slate-600 font-bold flex items-center justify-center text-xs shrink-0">2</div>
-                            <div className="text-sm text-slate-600 leading-relaxed">
-                                滑到最下方的「您的應用程式」區塊 (若無應用程式請先點擊 `&lt;/&gt;` 新增)。
-                            </div>
-                        </div>
-                        <div className="flex items-start gap-3">
-                            <div className="w-6 h-6 rounded-full bg-slate-200 text-slate-600 font-bold flex items-center justify-center text-xs shrink-0">3</div>
-                            <div className="text-sm text-slate-600 leading-relaxed">
-                                複製 <code className="bg-amber-100 text-amber-700 px-1 rounded">const firebaseConfig = ...</code> <b>整段程式碼</b>，並貼在下方欄位。
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="space-y-2">
-                        <div className="flex justify-between items-center">
-                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Firebase Configuration</label>
-                            <span className="text-[10px] text-indigo-500 font-bold flex items-center gap-1"><Zap size={10}/> 系統將自動解析代碼</span>
-                        </div>
-                        <textarea 
-                            className="w-full h-32 bg-slate-50 border border-slate-200 rounded-xl p-4 text-[10px] font-mono focus:ring-2 focus:ring-indigo-500 outline-none leading-relaxed text-slate-600 placeholder:text-slate-300"
-                            placeholder={`// 請直接貼上整段程式碼，例如：\nconst firebaseConfig = {\n  apiKey: "AIza...",\n  ...\n};`}
-                            value={configInput}
-                            onChange={(e) => setConfigInput(e.target.value)}
-                        />
-                    </div>
-
-                    <div className="bg-amber-50 text-amber-800 p-4 rounded-xl text-xs leading-relaxed border border-amber-100">
-                        <p className="font-bold mb-1 flex items-center gap-1"><AlertTriangle size={12}/> 重要提醒</p>
-                        請務必在 Firebase Console 的 <span className="font-bold">Realtime Database</span> 頁面建立資料庫，並將規則設為 <code className="bg-white/50 px-1 rounded">read: true, write: true</code> 才能正常使用。
-                    </div>
-                </div>
-
-                <div className="p-5 border-t border-slate-100 bg-white flex gap-3 shrink-0">
-                        <button onClick={() => { localStorage.removeItem('rento_firebase_config'); window.location.reload(); }} className="px-4 py-3 rounded-xl border border-slate-200 text-slate-500 font-bold text-xs hover:bg-slate-50">清除重設</button>
-                        <button onClick={handleSaveConfig} className="flex-1 bg-indigo-600 text-white rounded-xl font-black text-xs shadow-lg shadow-indigo-200 hover:bg-indigo-700 active:scale-95 transition-all">驗證並連線</button>
-                </div>
-            </div>
-        </div>
-      )}
-
       <main className="max-w-5xl mx-auto px-5 py-8 space-y-8">
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div className="bg-white p-6 rounded-[2rem] border border-slate-200 shadow-sm">
@@ -429,12 +348,8 @@ const App: React.FC = () => {
                 <div className="w-12 h-1 bg-slate-200 rounded-full mx-auto"></div>
                 <p className="text-[10px] text-slate-400 font-black uppercase tracking-[0.3em]">手動同步模式</p>
                 <p className="text-xs text-slate-300 max-w-xs mx-auto leading-relaxed px-6">
-                    目前尚未設定雲端資料庫。買家填單後需手動複製代碼傳送給您。<br/>
-                    建議點擊上方雲朵圖示啟用自動同步。
+                    目前尚未連線至 Firebase。買家填單後需手動複製代碼傳送給您。
                 </p>
-                <button onClick={masterSensor} className="inline-flex items-center gap-2 px-6 py-3 bg-white border border-slate-200 rounded-2xl text-xs font-black text-slate-500 hover:text-indigo-600 transition-all active:scale-95 shadow-sm">
-                    <ClipboardPaste size={16} /> 強制掃描剪貼簿
-                </button>
             </div>
         )}
       </main>
