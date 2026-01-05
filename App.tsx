@@ -7,7 +7,7 @@ import AIAssistant from './components/AIAssistant.tsx';
 import BuyerForm from './components/BuyerForm.tsx';
 import { parseOrderFromText } from './services/geminiService.ts';
 import { initCloud, subscribeToInbox, encodeConfig, FirebaseConfig } from './services/cloudService.ts';
-import { Search, Calculator as CalcIcon, Share2, Plus, ChevronUp, ChevronDown, ClipboardPaste, Zap, Loader2, Banknote, Bell, Inbox, X, Check, Cloud, Settings, AlertTriangle } from 'lucide-react';
+import { Search, Calculator as CalcIcon, Share2, Plus, ChevronUp, ChevronDown, ClipboardPaste, Zap, Loader2, Banknote, Bell, Inbox, X, Check, Cloud, Settings, AlertTriangle, ExternalLink, HelpCircle } from 'lucide-react';
 
 const App: React.FC = () => {
   // --- 狀態管理 ---
@@ -91,17 +91,37 @@ const App: React.FC = () => {
 
   const handleSaveConfig = () => {
     try {
-      // 嘗試解析輸入的 JSON
-      const config = JSON.parse(configInput);
-      if (!config.databaseURL) throw new Error("Invalid Config");
+      let jsonStr = configInput.trim();
       
+      // 1. 移除 JavaScript 宣告 (const firebaseConfig = )
+      if (jsonStr.includes('=')) {
+        jsonStr = jsonStr.split('=')[1].trim();
+      }
+      // 2. 移除結尾分號
+      if (jsonStr.endsWith(';')) {
+        jsonStr = jsonStr.slice(0, -1).trim();
+      }
+      
+      // 3. 嘗試修正 JS Object 語法變成標準 JSON (處理無引號的 key)
+      // 將 key: "value" 變成 "key": "value"
+      jsonStr = jsonStr.replace(/([{,]\s*)([a-zA-Z0-9_]+)(\s*:)/g, '$1"$2"$3');
+      // 將單引號變雙引號
+      jsonStr = jsonStr.replace(/'/g, '"');
+      // 移除尾端多餘的逗號
+      jsonStr = jsonStr.replace(/,(\s*})/g, '$1');
+
+      const config = JSON.parse(jsonStr);
+      
+      if (!config.databaseURL) throw new Error("缺少 databaseURL");
+
       localStorage.setItem('rento_firebase_config', JSON.stringify(config));
       setFirebaseConfig(config);
       setShowConfigModal(false);
       alert("設定已儲存！雲端同步功能啟動中...");
-      window.location.reload(); // 重新整理以確保連線乾淨
+      window.location.reload(); 
     } catch (e) {
-      alert("格式錯誤，請輸入完整的 Firebase JSON 設定。");
+      console.error(e);
+      alert("無法解析設定檔。請確保您複製了完整的程式碼片段 (包含大括號)。");
     }
   };
 
@@ -113,7 +133,6 @@ const App: React.FC = () => {
        // 如果有雲端設定，將加密後的設定與 StoreID 附帶在 URL 中
        const payload = encodeConfig(firebaseConfig, storeId);
        shareUrl += `&connect=${payload}`;
-       // 警告：URL 會變得很長，但在 Line/Messenger 中通常沒問題
     }
 
     if (navigator.clipboard?.writeText) {
@@ -162,7 +181,6 @@ const App: React.FC = () => {
 
   // --- UI 處理 ---
 
-  // Fix: Added missing handleUpdateOrder function to handle order updates from OrderList component
   const handleUpdateOrder = (id: string, updates: Partial<OrderItem>) => {
     setOrders(prev => prev.map(order => 
       order.id === id ? { ...order, ...updates } : order
@@ -173,7 +191,6 @@ const App: React.FC = () => {
     setOrders(prev => [item, ...prev]);
     setInboxItems(prev => prev.filter(i => i.id !== item.id)); // 記憶體中移除
     if (inboxItems.length === 1) setIsInboxOpen(false);
-    // TODO: 若是雲端資料，理論上應該也要從 Firebase 刪除，但為保留紀錄暫不執行
   };
 
   const handleRejectInboxItem = (id: string) => {
@@ -231,7 +248,6 @@ const App: React.FC = () => {
           </div>
           
           <div className="flex items-center gap-2">
-            {/* Cloud Config Button */}
             <button 
                 onClick={() => setShowConfigModal(true)}
                 className={`p-3 rounded-2xl transition-all shadow-sm active:scale-90 ${isCloudConnected ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 'bg-white border border-slate-200 text-slate-400'}`}
@@ -239,7 +255,6 @@ const App: React.FC = () => {
                 <Cloud size={18} strokeWidth={isCloudConnected ? 2.5 : 2} />
             </button>
 
-            {/* Inbox */}
             <div className="relative" ref={inboxRef}>
                 <button 
                     onClick={() => setIsInboxOpen(!isInboxOpen)}
@@ -252,7 +267,6 @@ const App: React.FC = () => {
                         </span>
                     )}
                 </button>
-                {/* Inbox Dropdown (UI Code Same as before, omitted for brevity but logic is preserved by React state) */}
                 {isInboxOpen && (
                     <div className="absolute top-full right-0 mt-3 w-80 sm:w-96 bg-white rounded-[2rem] shadow-2xl border border-slate-100 overflow-hidden animate-slide-in origin-top-right z-50">
                         <div className="p-4 border-b border-slate-100 bg-slate-50/50 flex justify-between items-center">
@@ -305,27 +319,56 @@ const App: React.FC = () => {
       {/* Cloud Config Modal */}
       {showConfigModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fade-in">
-            <div className="bg-white rounded-3xl w-full max-w-lg overflow-hidden shadow-2xl">
-                <div className="p-6 bg-slate-50 border-b border-slate-100 flex justify-between items-center">
+            <div className="bg-white rounded-3xl w-full max-w-lg overflow-hidden shadow-2xl flex flex-col max-h-[90vh]">
+                <div className="p-5 bg-slate-50 border-b border-slate-100 flex justify-between items-center shrink-0">
                     <h3 className="font-black text-lg text-slate-800 flex items-center gap-2"><Cloud size={20} className="text-indigo-600"/> 雲端同步設定</h3>
                     <button onClick={() => setShowConfigModal(false)}><X size={20} className="text-slate-400 hover:text-slate-600"/></button>
                 </div>
-                <div className="p-6 space-y-4">
+                
+                <div className="p-6 overflow-y-auto space-y-6">
+                    <div className="space-y-4">
+                        <div className="flex items-start gap-3">
+                            <div className="w-6 h-6 rounded-full bg-slate-200 text-slate-600 font-bold flex items-center justify-center text-xs shrink-0">1</div>
+                            <div className="text-sm text-slate-600 leading-relaxed">
+                                前往 <a href="https://console.firebase.google.com" target="_blank" className="text-indigo-600 font-bold hover:underline">Firebase Console</a>，點擊左上角「專案總覽」旁的<span className="inline-block mx-1 bg-slate-200 rounded p-1"><Settings size={12}/></span>齒輪圖示，選擇「專案設定」。
+                            </div>
+                        </div>
+                        <div className="flex items-start gap-3">
+                            <div className="w-6 h-6 rounded-full bg-slate-200 text-slate-600 font-bold flex items-center justify-center text-xs shrink-0">2</div>
+                            <div className="text-sm text-slate-600 leading-relaxed">
+                                滑到最下方的「您的應用程式」區塊 (若無應用程式請先點擊 `&lt;/&gt;` 新增)。
+                            </div>
+                        </div>
+                        <div className="flex items-start gap-3">
+                            <div className="w-6 h-6 rounded-full bg-slate-200 text-slate-600 font-bold flex items-center justify-center text-xs shrink-0">3</div>
+                            <div className="text-sm text-slate-600 leading-relaxed">
+                                複製 <code className="bg-amber-100 text-amber-700 px-1 rounded">const firebaseConfig = ...</code> <b>整段程式碼</b>，並貼在下方欄位。
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="space-y-2">
+                        <div className="flex justify-between items-center">
+                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Firebase Configuration</label>
+                            <span className="text-[10px] text-indigo-500 font-bold flex items-center gap-1"><Zap size={10}/> 系統將自動解析代碼</span>
+                        </div>
+                        <textarea 
+                            className="w-full h-32 bg-slate-50 border border-slate-200 rounded-xl p-4 text-[10px] font-mono focus:ring-2 focus:ring-indigo-500 outline-none leading-relaxed text-slate-600 placeholder:text-slate-300"
+                            placeholder={`// 請直接貼上整段程式碼，例如：\nconst firebaseConfig = {\n  apiKey: "AIza...",\n  ...\n};`}
+                            value={configInput}
+                            onChange={(e) => setConfigInput(e.target.value)}
+                        />
+                    </div>
+
                     <div className="bg-amber-50 text-amber-800 p-4 rounded-xl text-xs leading-relaxed border border-amber-100">
-                        <p className="font-bold mb-1 flex items-center gap-1"><AlertTriangle size={12}/> 注意</p>
-                        要啟用「買家按送出 &rarr; 您的手機直接收到」功能，需要設定 Firebase Realtime Database。
-                        請去 Firebase Console 建立專案，並將 Config JSON 貼在下方。
+                        <p className="font-bold mb-1 flex items-center gap-1"><AlertTriangle size={12}/> 重要提醒</p>
+                        請務必在 Firebase Console 的 <span className="font-bold">Realtime Database</span> 頁面建立資料庫，並將規則設為 <code className="bg-white/50 px-1 rounded">read: true, write: true</code> 才能正常使用。
                     </div>
-                    <textarea 
-                        className="w-full h-40 bg-slate-50 border border-slate-200 rounded-xl p-4 text-xs font-mono focus:ring-2 focus:ring-indigo-500 outline-none"
-                        placeholder='{"apiKey": "AIza...", "authDomain": "...", "databaseURL": "..."}'
-                        value={configInput}
-                        onChange={(e) => setConfigInput(e.target.value)}
-                    />
-                    <div className="flex gap-3">
-                         <button onClick={() => { localStorage.removeItem('rento_firebase_config'); window.location.reload(); }} className="px-4 py-3 rounded-xl border border-slate-200 text-slate-500 font-bold text-xs hover:bg-slate-50">清除設定</button>
-                         <button onClick={handleSaveConfig} className="flex-1 bg-indigo-600 text-white rounded-xl font-black text-xs shadow-lg shadow-indigo-200 hover:bg-indigo-700">儲存並連線</button>
-                    </div>
+                </div>
+
+                <div className="p-5 border-t border-slate-100 bg-white flex gap-3 shrink-0">
+                        <button onClick={() => { localStorage.removeItem('rento_firebase_config'); window.location.reload(); }} className="px-4 py-3 rounded-xl border border-slate-200 text-slate-500 font-bold text-xs hover:bg-slate-50">清除重設</button>
+                        <button onClick={handleSaveConfig} className="flex-1 bg-indigo-600 text-white rounded-xl font-black text-xs shadow-lg shadow-indigo-200 hover:bg-indigo-700 active:scale-95 transition-all">驗證並連線</button>
                 </div>
             </div>
         </div>
