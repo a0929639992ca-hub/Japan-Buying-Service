@@ -4,7 +4,9 @@ import Calculator from './components/Calculator.tsx';
 import OrderForm from './components/OrderForm.tsx';
 import OrderList from './components/OrderList.tsx';
 import AIAssistant from './components/AIAssistant.tsx';
-import { JapaneseYen, Flower2, Search, Banknote, Coins, Calculator as CalcIcon } from 'lucide-react';
+import BuyerForm from './components/BuyerForm.tsx';
+import ImportModal from './components/ImportModal.tsx';
+import { JapaneseYen, Flower2, Search, Banknote, Coins, Calculator as CalcIcon, Share2, ArrowLeft } from 'lucide-react';
 
 const App: React.FC = () => {
   const [orders, setOrders] = useState<OrderItem[]>(() => {
@@ -13,6 +15,29 @@ const App: React.FC = () => {
   });
   const [isCalculatorOpen, setIsCalculatorOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [importData, setImportData] = useState<OrderItem | null>(null);
+  const [viewMode, setViewMode] = useState<'admin' | 'buyer'>('admin');
+
+  // 初始化偵測網址參數
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    
+    // 偵測是否為買家模式
+    if (params.get('mode') === 'buyer') {
+      setViewMode('buyer');
+    }
+
+    // 偵測是否有匯入資料
+    const data = params.get('importData');
+    if (data) {
+      try {
+        const decoded = JSON.parse(atob(data));
+        setImportData(decoded);
+      } catch (e) {
+        console.error("匯入資料格式錯誤", e);
+      }
+    }
+  }, []);
 
   useEffect(() => {
     localStorage.setItem('sakura_orders', JSON.stringify(orders));
@@ -32,6 +57,12 @@ const App: React.FC = () => {
     setOrders((prev) => prev.map(o => o.id === id ? { ...o, ...updates } : o));
   };
 
+  const handleCopyRequestLink = () => {
+    const url = `${window.location.origin}${window.location.pathname}?mode=buyer`;
+    navigator.clipboard.writeText(url);
+    alert('買家填單連結已複製！您可以發送給客戶填寫。');
+  };
+
   const filteredOrders = useMemo(() => {
     return orders.filter(o => 
       o.buyerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -46,6 +77,11 @@ const App: React.FC = () => {
     return { totalJpy, totalTwd, paidTwd };
   }, [orders]);
 
+  // 如果是買家模式，渲染簡化的買家介面
+  if (viewMode === 'buyer') {
+    return <BuyerForm />;
+  }
+
   return (
     <div className="min-h-screen bg-background text-gray-900 pb-24 font-sans">
       <header className="sticky top-0 z-30 glass border-b border-gray-100">
@@ -58,11 +94,19 @@ const App: React.FC = () => {
               <h1 className="text-xl font-extrabold tracking-tight text-gray-900 leading-none">
                 Rento 代購團
               </h1>
-              <p className="text-[10px] text-gray-400 font-bold tracking-widest uppercase mt-1">Japan Premium Proxy</p>
+              <p className="text-[10px] text-gray-400 font-bold tracking-widest uppercase mt-1">Admin Dashboard</p>
             </div>
           </div>
           
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleCopyRequestLink}
+              title="分享買家填單連結"
+              className="p-2.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-600 rounded-xl transition-all active:scale-95 border border-indigo-100 flex items-center gap-2"
+            >
+              <Share2 size={18} />
+              <span className="text-xs font-bold hidden sm:inline">發送填單網址</span>
+            </button>
             <button
               onClick={() => setIsCalculatorOpen(true)}
               className="p-2.5 bg-gray-50 hover:bg-gray-100 text-gray-600 rounded-xl transition-all active:scale-95 border border-gray-100"
@@ -129,6 +173,22 @@ const App: React.FC = () => {
         onClose={() => setIsCalculatorOpen(false)} 
       />
       
+      {importData && (
+        <ImportModal 
+          data={importData} 
+          onConfirm={(order) => {
+            handleAddOrder(order);
+            setImportData(null);
+            // 清除網址參數
+            window.history.replaceState({}, '', window.location.pathname);
+          }}
+          onCancel={() => {
+            setImportData(null);
+            window.history.replaceState({}, '', window.location.pathname);
+          }}
+        />
+      )}
+
       <AIAssistant />
     </div>
   );
