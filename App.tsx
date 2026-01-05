@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { OrderItem } from './types.ts';
 import Calculator from './components/Calculator.tsx';
@@ -8,12 +7,17 @@ import AIAssistant from './components/AIAssistant.tsx';
 import BuyerForm from './components/BuyerForm.tsx';
 import ImportModal from './components/ImportModal.tsx';
 import { parseOrderFromText } from './services/geminiService.ts';
-import { Search, Calculator as CalcIcon, Share2, Plus, ChevronUp, ChevronDown, ClipboardPaste, Globe, Zap, Loader2, JapaneseYen } from 'lucide-react';
+import { Search, Calculator as CalcIcon, Share2, Plus, ChevronUp, ChevronDown, ClipboardPaste, Globe, Zap, Loader2, YenSign } from 'lucide-react';
 
 const App: React.FC = () => {
   const [orders, setOrders] = useState<OrderItem[]>(() => {
-    const saved = localStorage.getItem('sakura_orders');
-    return saved ? JSON.parse(saved) : [];
+    try {
+      const saved = localStorage.getItem('sakura_orders');
+      return saved ? JSON.parse(saved) : [];
+    } catch (e) {
+      console.error("LocalStorage Parse Error", e);
+      return [];
+    }
   });
   const [isCalculatorOpen, setIsCalculatorOpen] = useState(false);
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -22,7 +26,6 @@ const App: React.FC = () => {
   const [viewMode, setViewMode] = useState<'admin' | 'buyer'>('admin');
   const [isAISensing, setIsAISensing] = useState(false);
   
-  const processedIds = useRef<Set<string>>(new Set());
   const lastClipboardText = useRef<string>('');
 
   const parseImportData = (encodedData: string) => {
@@ -31,11 +34,14 @@ const App: React.FC = () => {
     } catch (e) { return null; }
   };
 
-  // 全能感應器：同時檢查剪貼簿文字 (AI) 與 魔術連結 (ImportData)
   const masterSensor = useCallback(async () => {
-    if (importData || isAISensing) return;
+    // 檢查瀏覽器是否支援剪貼簿且目前沒有正在顯示的匯入視窗
+    if (importData || isAISensing || !navigator.clipboard?.readText) return;
 
     try {
+      // 僅在視窗獲得焦點時嘗試讀取，避免觸發瀏覽器安全警報
+      if (document.visibilityState !== 'visible') return;
+      
       const text = await navigator.clipboard.readText();
       if (!text || text === lastClipboardText.current) return;
       lastClipboardText.current = text;
@@ -50,7 +56,7 @@ const App: React.FC = () => {
         }
       }
 
-      // 2. AI 語意感應：檢查是否含有日幣、數量或代購關鍵字
+      // 2. AI 語意感應：檢查是否含有相關關鍵字
       const aiKeywords = ['日幣', '日元', 'JPY', '數量', '個', '件', '幫我買', '代購'];
       if (aiKeywords.some(key => text.includes(key))) {
         setIsAISensing(true);
@@ -61,7 +67,7 @@ const App: React.FC = () => {
         setIsAISensing(false);
       }
     } catch (e) {
-      // 靜默處理權限問題
+      // 靜默處理：通常是使用者未授權剪貼簿權限
     }
   }, [importData, orders, isAISensing]);
 
@@ -72,30 +78,22 @@ const App: React.FC = () => {
       return;
     }
 
-    // 監聽全局貼上事件
-    const handlePaste = (e: ClipboardEvent) => {
-      const text = e.clipboardData?.getData('text');
-      if (text) masterSensor();
-    };
-
-    // 模擬雲端輪詢 (如果有外部來源)
     const cloudPoll = () => {
-      const queue = JSON.parse(localStorage.getItem('rento_external_queue') || '[]');
-      if (queue.length > 0 && !importData) {
-        const next = queue[0];
-        if (!orders.some(o => o.id === next.id)) setImportData(next);
-      }
+      try {
+        const queue = JSON.parse(localStorage.getItem('rento_external_queue') || '[]');
+        if (queue.length > 0 && !importData) {
+          const next = queue[0];
+          if (!orders.some(o => o.id === next.id)) setImportData(next);
+        }
+      } catch (e) {}
     };
 
-    window.addEventListener('paste', handlePaste);
     window.addEventListener('focus', masterSensor);
     const interval = setInterval(() => {
-        masterSensor();
         cloudPoll();
-    }, 2000);
+    }, 3000);
 
     return () => {
-      window.removeEventListener('paste', handlePaste);
       window.removeEventListener('focus', masterSensor);
       clearInterval(interval);
     };
@@ -121,9 +119,11 @@ const App: React.FC = () => {
   const handleConfirmImport = (order: OrderItem) => {
     handleAddOrder(order);
     setImportData(null);
-    const queue = JSON.parse(localStorage.getItem('rento_external_queue') || '[]');
-    localStorage.setItem('rento_external_queue', JSON.stringify(queue.filter((q: any) => q.id !== order.id)));
-    navigator.clipboard.writeText('');
+    try {
+      const queue = JSON.parse(localStorage.getItem('rento_external_queue') || '[]');
+      localStorage.setItem('rento_external_queue', JSON.stringify(queue.filter((q: any) => q.id !== order.id)));
+      if (navigator.clipboard?.writeText) navigator.clipboard.writeText('');
+    } catch (e) {}
   };
 
   const stats = useMemo(() => ({
@@ -132,7 +132,6 @@ const App: React.FC = () => {
     paid: orders.filter(o => o.isPaid).reduce((s, o) => s + o.calculatedPrice, 0)
   }), [orders]);
 
-  // Fix: Added filteredOrders to resolve "Cannot find name 'filteredOrders'" error.
   const filteredOrders = useMemo(() => {
     const query = searchQuery.toLowerCase().trim();
     if (!query) return orders;
@@ -146,13 +145,12 @@ const App: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-[#F1F5F9] text-slate-900 pb-12 font-sans">
-      {/* 智慧感應 Header */}
       <header className="sticky top-0 z-40 bg-white/90 backdrop-blur-2xl border-b border-slate-200 shadow-sm">
         <div className="safe-pt"></div>
         <div className="max-w-5xl mx-auto px-5 py-4 flex justify-between items-center">
           <div className="flex items-center gap-4">
             <div className="relative">
-                <div className={`absolute inset-0 bg-indigo-500 rounded-2xl blur-md opacity-20 animate-pulse ${isAISensing ? 'scale-150' : ''}`}></div>
+                <div className={`absolute inset-0 bg-indigo-500 rounded-2xl blur-md opacity-20 ${isAISensing ? 'animate-pulse scale-150' : ''}`}></div>
                 <div className="relative bg-slate-900 p-2.5 rounded-2xl text-amber-400 ring-1 ring-slate-800 shadow-xl">
                   {isAISensing ? <Loader2 size={20} className="animate-spin" /> : <Zap size={20} fill="currentColor" />}
                 </div>
@@ -172,8 +170,10 @@ const App: React.FC = () => {
             </button>
             <button onClick={() => {
               const url = `${window.location.origin}${window.location.pathname}?mode=buyer`;
-              navigator.clipboard.writeText(url);
-              alert('買家專屬填單連結已複製！');
+              if (navigator.clipboard?.writeText) {
+                navigator.clipboard.writeText(url);
+                alert('買家專屬填單連結已複製！');
+              }
             }} className="px-5 py-3 bg-indigo-600 text-white rounded-2xl text-xs font-black shadow-lg shadow-indigo-200 flex items-center gap-2 active:scale-95">
               <Share2 size={14} strokeWidth={3} />
               <span className="hidden sm:inline">發送收單連結</span>
@@ -183,11 +183,10 @@ const App: React.FC = () => {
       </header>
 
       <main className="max-w-5xl mx-auto px-5 py-8 space-y-8">
-        {/* 數據中心 */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div className="bg-white p-6 rounded-[2rem] border border-slate-200 shadow-sm">
             <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 flex items-center gap-1.5">
-                <JapaneseYen size={12} strokeWidth={3} /> 採購預算
+                <YenSign size={12} strokeWidth={3} /> 採購預算
             </p>
             <p className="text-2xl font-black text-slate-900">¥ {stats.jpy.toLocaleString()}</p>
           </div>
@@ -201,7 +200,6 @@ const App: React.FC = () => {
           </div>
         </div>
 
-        {/* 手動按鈕 */}
         <button onClick={() => setIsFormOpen(!isFormOpen)} className="w-full bg-white px-8 py-6 rounded-[2rem] border border-slate-200 shadow-sm flex items-center justify-between group transition-all hover:border-indigo-200">
           <div className="flex items-center gap-4">
             <div className={`p-2 rounded-xl transition-all ${isFormOpen ? 'bg-indigo-100 text-indigo-600 rotate-45' : 'bg-slate-100 text-slate-600'}`}>
@@ -221,7 +219,6 @@ const App: React.FC = () => {
           </div>
         )}
 
-        {/* 搜尋 */}
         <div className="relative group">
           <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-indigo-500 transition-colors" size={20} />
           <input 
@@ -238,8 +235,8 @@ const App: React.FC = () => {
         <div className="py-12 text-center space-y-4">
             <div className="w-12 h-1 bg-slate-200 rounded-full mx-auto"></div>
             <p className="text-[10px] text-slate-400 font-black uppercase tracking-[0.3em]">AI 智慧感應已啟動</p>
-            <p className="text-xs text-slate-300 max-w-xs mx-auto leading-relaxed">
-                您可以直接複製 Line 對話中的購買需求，<br/>App 會自動解析資訊並詢問收單。
+            <p className="text-xs text-slate-300 max-w-xs mx-auto leading-relaxed px-6">
+                您可以直接複製聊天訊息，<br/>App 會自動解析資訊並詢問收單。
             </p>
             <button onClick={masterSensor} className="inline-flex items-center gap-2 px-6 py-3 bg-white border border-slate-200 rounded-2xl text-xs font-black text-slate-500 hover:text-indigo-600 transition-all active:scale-95 shadow-sm">
                 <ClipboardPaste size={16} /> 強制同步感應

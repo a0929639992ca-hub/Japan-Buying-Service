@@ -1,6 +1,6 @@
 import React from 'react';
 import { OrderItem } from '../types.ts';
-import { Zap, X, Check, JapaneseYen, User, ShoppingBag, Info, Sparkles } from 'lucide-react';
+import { Zap, X, Check, YenSign, User, ShoppingBag, Info, Sparkles } from 'lucide-react';
 
 interface ImportModalProps {
   data: OrderItem;
