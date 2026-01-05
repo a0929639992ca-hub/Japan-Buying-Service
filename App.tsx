@@ -7,7 +7,7 @@ import AIAssistant from './components/AIAssistant.tsx';
 import BuyerForm from './components/BuyerForm.tsx';
 import ImportModal from './components/ImportModal.tsx';
 import { parseOrderFromText } from './services/geminiService.ts';
-import { Search, Calculator as CalcIcon, Share2, Plus, ChevronUp, ChevronDown, ClipboardPaste, Globe, Zap, Loader2, YenSign } from 'lucide-react';
+import { Search, Calculator as CalcIcon, Share2, Plus, ChevronUp, ChevronDown, ClipboardPaste, Globe, Zap, Loader2, JapaneseYen } from 'lucide-react';
 
 const App: React.FC = () => {
   const [orders, setOrders] = useState<OrderItem[]>(() => {
@@ -186,7 +186,7 @@ const App: React.FC = () => {
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div className="bg-white p-6 rounded-[2rem] border border-slate-200 shadow-sm">
             <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 flex items-center gap-1.5">
-                <YenSign size={12} strokeWidth={3} /> 採購預算
+                <JapaneseYen size={12} strokeWidth={3} /> 採購預算
             </p>
             <p className="text-2xl font-black text-slate-900">¥ {stats.jpy.toLocaleString()}</p>
           </div>
