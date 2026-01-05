@@ -30,8 +30,10 @@ const BuyerForm: React.FC = () => {
     e.preventDefault();
     setIsSending(true);
 
+    // 加入隨機數確保 ID 唯一，避免後台判定為重複提交
+    const randomSuffix = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
     const orderData = {
-      id: `EXT-${Date.now()}`,
+      id: `EXT-${Date.now()}-${randomSuffix}`,
       buyerName,
       productName,
       imageUrl: imageUrl || undefined,
@@ -47,27 +49,32 @@ const BuyerForm: React.FC = () => {
 
     const magicLink = generateMagicLink(orderData);
 
-    // 模擬網路傳輸時間
     setTimeout(() => {
-      // 1. 同步至 LocalStorage (供同環境測試用)
+      // 1. 同步至 LocalStorage
       const queue = JSON.parse(localStorage.getItem('rento_external_queue') || '[]');
       localStorage.setItem('rento_external_queue', JSON.stringify([...queue, orderData]));
       
-      // 2. 自動複製到剪貼簿 (跨環境同步關鍵)
+      // 2. 自動複製到剪貼簿
       try {
-        navigator.clipboard.writeText(magicLink);
+        const textArea = document.createElement("textarea");
+        textArea.value = magicLink;
+        document.body.appendChild(textArea);
+        textArea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textArea);
       } catch (err) {
-        console.warn("自動複製失敗，將改由手動複製按鈕提供代碼。");
+        console.warn("Legacy copy fallback failed");
       }
       
       setIsSending(false);
       setSubmitted(true);
-    }, 1500);
+    }, 1200);
   };
 
   const handleManualShare = async () => {
+    const randomSuffix = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
     const orderData = {
-      id: `MAGIC-${Date.now()}`,
+      id: `MAGIC-${Date.now()}-${randomSuffix}`,
       buyerName,
       productName,
       requestedQuantity: parseInt(qty),
@@ -75,7 +82,7 @@ const BuyerForm: React.FC = () => {
     };
 
     const magicLink = generateMagicLink(orderData);
-    const shareText = `🌸 Rento 代購委託單\n👤 買家：${buyerName}\n📦 商品：${productName}\n🔢 數量：${qty}\n🔗 點擊連結匯入：\n${magicLink}`;
+    const shareText = `🌸 Rento 代購委託單\n👤 買家：${buyerName}\n📦 商品：${productName}\n🔢 數量：${qty}\n🔗 匯入連結：\n${magicLink}`;
     
     if (navigator.share) {
       try {
@@ -103,7 +110,7 @@ const BuyerForm: React.FC = () => {
             <div className="bg-blue-50/50 p-4 rounded-2xl border border-blue-100">
                 <p className="text-sm text-blue-700 font-bold leading-relaxed">
                     委託資訊已自動複製到剪貼簿。<br/>
-                    <span className="text-xs font-medium opacity-80">團長只需開啟 App，系統就會自動感應收單。</span>
+                    <span className="text-xs font-medium opacity-80">請切換回團長 App，系統將會自動感應收單。</span>
                 </p>
             </div>
           </div>
@@ -114,13 +121,13 @@ const BuyerForm: React.FC = () => {
               className="w-full bg-[#06C755] text-white py-5 rounded-3xl font-black shadow-xl shadow-green-100 flex items-center justify-center gap-3 active:scale-95 transition-all"
             >
               <Share size={20} />
-              傳送給團長 (Line)
+              手動分享給團長
             </button>
             <button 
               onClick={() => setSubmitted(false)}
               className="w-full bg-gray-50 text-gray-400 py-4 rounded-2xl font-bold text-xs"
             >
-              返回修改內容
+              再填一筆委託
             </button>
           </div>
           <p className="text-[10px] text-gray-300 font-bold uppercase tracking-widest pt-8">Powered by Rento Clipboard Sync</p>
@@ -151,7 +158,7 @@ const BuyerForm: React.FC = () => {
                 <Loader2 size={48} className="text-primary animate-spin" />
                 <Send size={16} className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-primary" />
               </div>
-              <p className="text-sm font-black text-primary animate-pulse tracking-tight">正在產生收單代碼...</p>
+              <p className="text-sm font-black text-primary animate-pulse tracking-tight">正在同步委託資訊...</p>
             </div>
           )}
           
@@ -226,7 +233,7 @@ const BuyerForm: React.FC = () => {
               className="w-full bg-primary text-white py-5 rounded-3xl font-black shadow-xl shadow-primary/20 flex items-center justify-center gap-3 active:scale-95 transition-all disabled:opacity-50"
             >
               <Send size={20} />
-              確認委託並複製代碼
+              確認委託並自動同步
             </button>
           </form>
         </div>

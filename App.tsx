@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { OrderItem } from './types.ts';
 import Calculator from './components/Calculator.tsx';
 import OrderForm from './components/OrderForm.tsx';
@@ -18,8 +19,10 @@ const App: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [importData, setImportData] = useState<OrderItem | null>(null);
   const [viewMode, setViewMode] = useState<'admin' | 'buyer'>('admin');
+  
+  // 用於追蹤本階段已拒絕或處理過的 ID，避免重複彈出
+  const processedIds = useRef<Set<string>>(new Set());
 
-  // 解析加密資料的工具函數
   const parseImportData = (encodedData: string) => {
     try {
       const decodedString = decodeURIComponent(escape(atob(encodedData)));
@@ -29,27 +32,29 @@ const App: React.FC = () => {
     }
   };
 
-  // 檢查剪貼簿內容 (解決跨 App 同步隔離問題)
   const checkClipboard = useCallback(async () => {
+    // 只有在畫面可見、沒有正在顯示彈窗時檢查
+    if (document.visibilityState !== 'visible' || importData) return;
+
     try {
-      // 僅在 App 獲得焦點且沒有正在顯示的匯入彈窗時檢查
-      if (document.visibilityState === 'visible' && !importData) {
-        const text = await navigator.clipboard.readText();
-        if (text.includes('importData=')) {
-          const match = text.match(/importData=([^&\s]+)/);
-          if (match && match[1]) {
-            const data = parseImportData(match[1]);
-            if (data && data.id) {
-              // 檢查是否已經存在於訂單中
-              if (!orders.find(o => o.id === data.id)) {
-                setImportData(data);
-              }
+      // 嘗試讀取剪貼簿
+      const text = await navigator.clipboard.readText();
+      if (text.includes('importData=')) {
+        const match = text.match(/importData=([^&\s]+)/);
+        if (match && match[1]) {
+          const data = parseImportData(match[1]);
+          if (data && data.id && !processedIds.current.has(data.id)) {
+            // 檢查是否真的不在現有訂單中
+            const exists = orders.some(o => o.id === data.id);
+            if (!exists) {
+              setImportData(data);
             }
           }
         }
       }
     } catch (e) {
-      // 瀏覽器可能禁止自動讀取剪貼簿，靜默處理
+      // iOS 經常會擋住自動 readText，這是正常的
+      console.debug('Clipboard auto-read failed or denied');
     }
   }, [importData, orders]);
 
@@ -60,7 +65,7 @@ const App: React.FC = () => {
       return;
     }
 
-    // 1. 處理 URL 直接匯入 (Magic Link)
+    // 1. 處理 URL 直接啟動匯入
     const encodedData = params.get('importData');
     if (encodedData) {
       const data = parseImportData(encodedData);
@@ -70,26 +75,28 @@ const App: React.FC = () => {
       }
     }
 
-    // 2. 定期檢查 LocalStorage (同瀏覽器內同步)
+    // 2. 定期檢查 LocalStorage (同裝置同瀏覽器同步)
     const checkQueue = () => {
       const queue = JSON.parse(localStorage.getItem('rento_external_queue') || '[]');
       if (queue.length > 0 && !importData) {
-        setImportData(queue[0]);
+        const nextItem = queue[0];
+        if (!processedIds.current.has(nextItem.id) && !orders.some(o => o.id === nextItem.id)) {
+          setImportData(nextItem);
+        }
       }
     };
 
-    // 3. 監聽視窗焦點，一旦回到 App 就檢查剪貼簿 (跨 App 同步關鍵)
+    // 3. 監聽視窗顯示狀態改變 (切換 App 回來時觸發)
+    document.addEventListener('visibilitychange', checkClipboard);
     window.addEventListener('focus', checkClipboard);
-    const timer = setInterval(checkQueue, 1500);
-    
-    checkQueue();
-    checkClipboard();
+    const timer = setInterval(checkQueue, 1000); // 縮短為 1 秒
 
     return () => {
       clearInterval(timer);
+      document.removeEventListener('visibilitychange', checkClipboard);
       window.removeEventListener('focus', checkClipboard);
     };
-  }, [importData, checkClipboard]);
+  }, [importData, checkClipboard, orders]);
 
   useEffect(() => {
     localStorage.setItem('sakura_orders', JSON.stringify(orders));
@@ -100,55 +107,63 @@ const App: React.FC = () => {
     setIsFormOpen(false);
   };
 
+  // 修正：新增遺失的 handleRemoveOrder 與 handleUpdateOrder 函式
   const handleRemoveOrder = (id: string) => {
-    if (confirm('確定要刪除此項商品嗎？')) {
-      setOrders((prev) => prev.filter(o => o.id !== id));
-    }
+    setOrders((prev) => prev.filter((o) => o.id !== id));
   };
 
   const handleUpdateOrder = (id: string, updates: Partial<OrderItem>) => {
-    setOrders((prev) => prev.map(o => o.id === id ? { ...o, ...updates } : o));
+    setOrders((prev) =>
+      prev.map((o) => (o.id === id ? { ...o, ...updates } : o))
+    );
   };
 
   const handleConfirmImport = (order: OrderItem) => {
     handleAddOrder(order);
+    processedIds.current.add(order.id);
     setImportData(null);
+    
+    // 清除公共緩存池
     const queue = JSON.parse(localStorage.getItem('rento_external_queue') || '[]');
     localStorage.setItem('rento_external_queue', JSON.stringify(queue.filter((q: any) => q.id !== order.id)));
-    // 清除剪貼簿避免重複彈出
-    navigator.clipboard.writeText('');
+    
+    // 嘗試清空剪貼簿，避免下次切換 App 又彈出同一筆
+    try { navigator.clipboard.writeText(''); } catch(e) {}
   };
 
   const handleCancelImport = () => {
-    const orderToSkip = importData;
-    setImportData(null);
-    if (orderToSkip) {
-        const queue = JSON.parse(localStorage.getItem('rento_external_queue') || '[]');
-        localStorage.setItem('rento_external_queue', JSON.stringify(queue.filter((q: any) => q.id !== orderToSkip.id)));
+    if (importData) {
+      processedIds.current.add(importData.id);
+      // 從緩存池中移除
+      const queue = JSON.parse(localStorage.getItem('rento_external_queue') || '[]');
+      localStorage.setItem('rento_external_queue', JSON.stringify(queue.filter((q: any) => q.id !== importData.id)));
     }
+    setImportData(null);
+    try { navigator.clipboard.writeText(''); } catch(e) {}
   };
 
   const handleCopyRequestLink = () => {
     const url = `${window.location.origin}${window.location.pathname}?mode=buyer`;
     navigator.clipboard.writeText(url);
-    alert('買家填單連結已複製！請傳送給買家。');
+    alert('買家填單連結已複製！');
   };
 
   const handleManualPaste = async () => {
     try {
       const text = await navigator.clipboard.readText();
-      if (text.includes('importData=')) {
-        const match = text.match(/importData=([^&\s]+)/);
-        if (match && match[1]) {
-          const data = parseImportData(match[1]);
-          if (data) setImportData(data);
-          else alert('無法解析剪貼簿中的委託代碼。');
+      const match = text.match(/importData=([^&\s]+)/);
+      if (match && match[1]) {
+        const data = parseImportData(match[1]);
+        if (data) {
+            setImportData(data);
+            // 手動點擊時，從已處理清單中移除（萬一使用者想重複匯入）
+            processedIds.current.delete(data.id);
         }
       } else {
-        alert('剪貼簿中沒有偵測到 Rento 委託代碼。');
+        alert('剪貼簿中沒有偵測到 Rento 代碼');
       }
     } catch (e) {
-      alert('無法存取剪貼簿，請檢查權限設定。');
+      alert('請允許 App 存取剪貼簿，或手動在輸入框貼上代碼');
     }
   };
 
@@ -172,9 +187,8 @@ const App: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-[#fcfcfc] text-gray-900 pb-12 font-sans">
-      {/* 強化版安全區域 Header */}
       <header className="sticky top-0 z-40 bg-white/80 backdrop-blur-xl border-b border-gray-100">
-        <div className="safe-pt"></div> {/* 專門墊高動態島區域 */}
+        <div className="safe-pt"></div>
         <div className="max-w-4xl mx-auto px-5 py-4 flex justify-between items-center">
           <div className="flex items-center gap-3">
             <div className="bg-primary p-2 rounded-xl text-accent shadow-lg shadow-primary/20">
@@ -195,7 +209,7 @@ const App: React.FC = () => {
           <div className="flex items-center gap-2">
             <button 
               onClick={handleManualPaste}
-              className="p-2.5 bg-gray-50 text-gray-400 rounded-xl hover:bg-indigo-50 hover:text-indigo-500 transition-all border border-gray-100"
+              className="p-2.5 bg-gray-50 text-gray-400 rounded-xl hover:bg-indigo-50 hover:text-indigo-500 transition-all border border-gray-100 shadow-sm"
               title="貼上收單"
             >
               <ClipboardPaste size={18} />
@@ -205,7 +219,7 @@ const App: React.FC = () => {
               className="px-4 py-2.5 bg-indigo-50 text-indigo-600 rounded-xl transition-all border border-indigo-100 flex items-center gap-2 text-xs font-bold shadow-sm active:scale-95"
             >
               <Share2 size={14} />
-              <span className="hidden xs:inline">發送買家連結</span>
+              <span className="hidden xs:inline">發送連結</span>
             </button>
           </div>
         </div>
