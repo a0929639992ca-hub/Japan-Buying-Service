@@ -313,7 +313,7 @@ const App: React.FC = () => {
                 <div className="p-6 space-y-4">
                     <div className="bg-amber-50 text-amber-800 p-4 rounded-xl text-xs leading-relaxed border border-amber-100">
                         <p className="font-bold mb-1 flex items-center gap-1"><AlertTriangle size={12}/> 注意</p>
-                        要啟用「買家按送出 -> 您的手機直接收到」功能，需要設定 Firebase Realtime Database。
+                        要啟用「買家按送出 &rarr; 您的手機直接收到」功能，需要設定 Firebase Realtime Database。
                         請去 Firebase Console 建立專案，並將 Config JSON 貼在下方。
                     </div>
                     <textarea 
