@@ -6,7 +6,7 @@
     <title>Rento 代購團 | 日本優質代購服務</title>
     
     <!-- iOS 主畫面圖示與設定 - 精確還原 Rento 標誌設計 -->
-    <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%230f172a'/%3E%3Cpath d='M32 30v40 M32 30h16c10 0 10 16 0 16H32 M44 46c2 12 6 22 22 22h4 M70 68l-6-6 M70 68l-6 6' stroke='%23fbbf24' stroke-width='7.5' stroke-linecap='round' stroke-linejoin='round' fill='none'/%3E%3C/svg%3E" />
+    <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%230f172a'/%3E%3Cpath d='M32 30v40 M32 30h16c10 0 10-16 0-16H32 M44 46c2 12 6 22 22 22h4 M70 68l-6-6 M70 68l-6 6' stroke='%23fbbf24' stroke-width='7.5' stroke-linecap='round' stroke-linejoin='round' fill='none'/%3E%3C/svg%3E" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Rento 代購" />
@@ -39,6 +39,9 @@
         font-family: 'Inter', 'Noto Sans TC', 'sans-serif';
         background-color: #fafafa;
         color: #1f2937;
+      }
+      .safe-pt {
+        padding-top: env(safe-area-inset-top, 0px);
       }
       .glass {
         background: rgba(255, 255, 255, 0.7);

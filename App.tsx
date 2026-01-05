@@ -6,7 +6,7 @@ import OrderList from './components/OrderList.tsx';
 import AIAssistant from './components/AIAssistant.tsx';
 import BuyerForm from './components/BuyerForm.tsx';
 import ImportModal from './components/ImportModal.tsx';
-import { JapaneseYen, Flower2, Search, Banknote, Coins, Calculator as CalcIcon, Share2, Plus, ChevronUp, ChevronDown } from 'lucide-react';
+import { Search, Calculator as CalcIcon, Share2, Plus, ChevronUp, ChevronDown, Radio } from 'lucide-react';
 
 const App: React.FC = () => {
   const [orders, setOrders] = useState<OrderItem[]>(() => {
@@ -27,6 +27,7 @@ const App: React.FC = () => {
       return;
     }
 
+    // 處理 Magic Link 匯入
     const encodedData = params.get('importData');
     if (encodedData) {
       try {
@@ -39,14 +40,16 @@ const App: React.FC = () => {
       }
     }
 
+    // 自動同步機制：偵測 localStorage 委託池
     const checkQueue = () => {
       const queue = JSON.parse(localStorage.getItem('rento_external_queue') || '[]');
       if (queue.length > 0 && !importData) {
+        // 取出第一筆尚未處理的委託
         setImportData(queue[0]);
       }
     };
 
-    const timer = setInterval(checkQueue, 2000);
+    const timer = setInterval(checkQueue, 1500);
     checkQueue();
     return () => clearInterval(timer);
   }, [importData]);
@@ -73,8 +76,9 @@ const App: React.FC = () => {
   const handleConfirmImport = (order: OrderItem) => {
     handleAddOrder(order);
     setImportData(null);
+    // 從公共委託池中移除已處理的項目
     const queue = JSON.parse(localStorage.getItem('rento_external_queue') || '[]');
-    localStorage.setItem('rento_external_queue', JSON.stringify(queue.filter((q: OrderItem) => q.id !== order.id)));
+    localStorage.setItem('rento_external_queue', JSON.stringify(queue.filter((q: any) => q.id !== order.id)));
   };
 
   const handleCancelImport = () => {
@@ -82,14 +86,14 @@ const App: React.FC = () => {
     setImportData(null);
     if (orderToSkip) {
         const queue = JSON.parse(localStorage.getItem('rento_external_queue') || '[]');
-        localStorage.setItem('rento_external_queue', JSON.stringify(queue.filter((q: OrderItem) => q.id !== orderToSkip.id)));
+        localStorage.setItem('rento_external_queue', JSON.stringify(queue.filter((q: any) => q.id !== orderToSkip.id)));
     }
   };
 
   const handleCopyRequestLink = () => {
     const url = `${window.location.origin}${window.location.pathname}?mode=buyer`;
     navigator.clipboard.writeText(url);
-    alert('買家填單連結已複製！');
+    alert('買家填單連結已複製！請傳送給買家。');
   };
 
   const filteredOrders = useMemo(() => {
@@ -112,18 +116,27 @@ const App: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-[#fcfcfc] text-gray-900 pb-12 font-sans">
-      <header className="sticky top-0 z-30 bg-white/80 backdrop-blur-xl border-b border-gray-100">
+      <header className="sticky top-0 z-30 bg-white/90 backdrop-blur-xl border-b border-gray-100 safe-pt">
         <div className="max-w-4xl mx-auto px-4 py-3 flex justify-between items-center">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
             <div className="bg-primary p-1.5 rounded-xl text-accent shadow-md shadow-primary/20">
               <Plus size={18} strokeWidth={3} className="rotate-45" />
             </div>
-            <h1 className="text-lg font-black tracking-tighter text-gray-900">Rento 後台</h1>
+            <div>
+              <h1 className="text-lg font-black tracking-tighter text-gray-900 leading-none">Rento 後台</h1>
+              <div className="flex items-center gap-1 mt-1">
+                <span className="relative flex h-1.5 w-1.5">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-green-500"></span>
+                </span>
+                <span className="text-[8px] font-bold text-gray-400 uppercase tracking-widest">Auto-Sync Active</span>
+              </div>
+            </div>
           </div>
           
           <div className="flex items-center gap-2">
             <button onClick={handleCopyRequestLink} className="p-2 bg-indigo-50 text-indigo-600 rounded-xl transition-all border border-indigo-100 flex items-center gap-1.5 text-xs font-bold">
-              <Share2 size={14} /> <span className="hidden sm:inline">買家連結</span>
+              <Share2 size={14} /> <span className="hidden sm:inline">發送買家連結</span>
             </button>
             <button onClick={() => setIsCalculatorOpen(true)} className="p-2 bg-gray-50 text-gray-600 rounded-xl border border-gray-100"><CalcIcon size={16} /></button>
           </div>
@@ -133,15 +146,15 @@ const App: React.FC = () => {
       <main className="max-w-4xl mx-auto px-4 py-6 space-y-6">
         <div className="grid grid-cols-3 gap-3">
           <div className="bg-white px-4 py-3 rounded-2xl border border-gray-100 shadow-sm">
-            <p className="text-[9px] font-black text-gray-400 uppercase mb-0.5">總支出 JPY</p>
+            <p className="text-[9px] font-black text-gray-400 uppercase mb-0.5 tracking-wider">總採購 JPY</p>
             <p className="text-sm font-black truncate">¥ {stats.totalJpy.toLocaleString()}</p>
           </div>
           <div className="bg-white px-4 py-3 rounded-2xl border border-gray-100 shadow-sm">
-            <p className="text-[9px] font-black text-gray-400 uppercase mb-0.5">預估營收</p>
+            <p className="text-[9px] font-black text-gray-400 uppercase mb-0.5 tracking-wider">預估總額</p>
             <p className="text-sm font-black truncate">NT$ {stats.totalTwd.toLocaleString()}</p>
           </div>
           <div className="bg-white px-4 py-3 rounded-2xl border border-gray-100 shadow-sm bg-green-50/30 border-green-100/50">
-            <p className="text-[9px] font-black text-green-500/70 uppercase mb-0.5">已入帳</p>
+            <p className="text-[9px] font-black text-green-500/70 uppercase mb-0.5 tracking-wider">實收帳款</p>
             <p className="text-sm font-black truncate text-green-600">NT$ {stats.paidTwd.toLocaleString()}</p>
           </div>
         </div>
@@ -153,7 +166,7 @@ const App: React.FC = () => {
           >
             <div className="flex items-center gap-2">
               <Plus size={18} className={`text-primary transition-transform ${isFormOpen ? 'rotate-45' : ''}`} />
-              <span className="font-bold text-sm text-gray-700">快速新增委託項目</span>
+              <span className="font-bold text-sm text-gray-700">手動快速新增</span>
             </div>
             {isFormOpen ? <ChevronUp size={16} className="text-gray-300"/> : <ChevronDown size={16} className="text-gray-300"/>}
           </button>
@@ -168,7 +181,7 @@ const App: React.FC = () => {
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300 group-focus-within:text-primary transition-colors" size={16} />
           <input 
             type="text"
-            placeholder="搜尋買家、商品..."
+            placeholder="搜尋買家或商品..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full pl-11 pr-4 py-3.5 bg-white border border-gray-100 rounded-2xl shadow-sm outline-none focus:ring-2 focus:ring-primary/5 focus:border-primary/30 transition-all text-xs font-medium"
