@@ -6,7 +6,7 @@ import OrderList from './components/OrderList.tsx';
 import AIAssistant from './components/AIAssistant.tsx';
 import BuyerForm from './components/BuyerForm.tsx';
 import { parseOrderFromText } from './services/geminiService.ts';
-import { initCloud, subscribeToInbox, encodeConfig, FirebaseConfig } from './services/cloudService.ts';
+import { initCloud, subscribeToInbox, encodeConfig, FirebaseConfig, removeOrderFromInbox } from './services/cloudService.ts';
 import { COST_EXCHANGE_RATE } from './constants.ts';
 import { Search, Calculator as CalcIcon, Share2, Plus, ChevronUp, ChevronDown, ClipboardPaste, Zap, Loader2, Banknote, Bell, Inbox, X, Check, Cloud, Sun, Lock, TrendingUp } from 'lucide-react';
 
@@ -288,11 +288,21 @@ const App: React.FC = () => {
     setOrders(prev => [safeItem, ...prev]);
     setInboxItems(prev => prev.filter(i => i.id !== item.id)); 
     if (inboxItems.length <= 1) setIsInboxOpen(false);
+
+    // 關鍵修正：接收後，從雲端刪除該項目，避免下次重整又出現
+    if (isCloudConnected) {
+       removeOrderFromInbox(storeId, item.id);
+    }
   };
 
   const handleRejectInboxItem = (id: string) => {
     setInboxItems(prev => prev.filter(i => i.id !== id));
     if (inboxItems.length <= 1) setIsInboxOpen(false);
+    
+    // 關鍵修正：忽略後，從雲端刪除該項目，避免下次重整又出現
+    if (isCloudConnected) {
+       removeOrderFromInbox(storeId, id);
+    }
   };
 
   const stats = useMemo(() => {

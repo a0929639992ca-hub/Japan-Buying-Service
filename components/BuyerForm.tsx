@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Send, ShoppingBag, User, Image as ImageIcon, CheckCircle2, MessageSquareText, Copy, Plus, Loader2, Info, CloudLightning, Link2, X, Trash2, Layers } from 'lucide-react';
+import { Send, ShoppingBag, User, Image as ImageIcon, CheckCircle2, MessageSquareText, Copy, Plus, Loader2, Info, CloudLightning, Link2, X, Trash2, Layers, Calendar, Star, Store, Ban } from 'lucide-react';
 import { OrderStatus, OrderItem } from '../types.ts';
 import { decodeConfig, initCloud, sendOrderToCloud } from '../services/cloudService.ts';
 
@@ -295,6 +295,57 @@ const BuyerForm: React.FC = () => {
 
       <main className="max-w-xl mx-auto p-5">
         <div className="space-y-6">
+
+          {/* Welcome Info Card */}
+          <div className="bg-white rounded-[2.5rem] p-6 shadow-sm border border-slate-100 overflow-hidden relative">
+             <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-50 rounded-bl-[4rem] -z-0 opacity-50"></div>
+             
+             <div className="relative z-10 space-y-5">
+                 <div>
+                     <h2 className="text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2">
+                         🇯🇵 佛系代購 <span className="text-amber-400">✨</span>
+                     </h2>
+                     <div className="flex items-center gap-2 mt-2 text-slate-500 font-bold text-xs bg-slate-50 w-fit px-3 py-1.5 rounded-full">
+                         <Calendar size={12} />
+                         <span>115.01.27 - 01.29</span>
+                     </div>
+                     <p className="text-sm text-slate-400 mt-2 font-medium">希望能補貼一點旅費 ❤️</p>
+                 </div>
+
+                 <div className="bg-indigo-50/50 p-4 rounded-2xl border border-indigo-100/50 space-y-2">
+                     <h3 className="text-sm font-black text-indigo-900 flex items-center gap-1.5">
+                         <Star size={14} className="text-amber-400 fill-amber-400"/> 代購匯率
+                     </h3>
+                     <ul className="text-sm text-indigo-800 space-y-1.5 font-medium pl-1">
+                         <li className="flex justify-between items-center">
+                             <span>商品加總滿 <span className="font-bold">¥5500</span> (含)</span>
+                             <span className="font-bold bg-white px-2 py-0.5 rounded-md shadow-sm text-indigo-600 text-xs">× 0.23</span>
+                         </li>
+                         <li className="flex justify-between items-center">
+                             <span>商品稅後未滿 ¥5500</span>
+                             <span className="font-bold bg-white px-2 py-0.5 rounded-md shadow-sm text-indigo-600 text-xs">× 0.24</span>
+                         </li>
+                     </ul>
+                     <p className="text-[10px] text-indigo-400/80 font-bold mt-1 text-right">（大體積、需排隊、限量商品另計）</p>
+                 </div>
+
+                 <div className="space-y-2">
+                      <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
+                         <Store size={12} /> 可代購項目
+                      </h3>
+                      <div className="flex flex-wrap gap-2">
+                         {['UNIQLO', 'GU', 'MUJI', 'Donki唐吉訶德', '3Coins', 'Bic Camera', '零食', '藥妝'].map(tag => (
+                             <span key={tag} className="bg-slate-50 text-slate-600 px-3 py-1.5 rounded-xl text-xs font-bold border border-slate-100">{tag}</span>
+                         ))}
+                      </div>
+                 </div>
+
+                  <div className="flex items-center gap-2 text-rose-500 bg-rose-50 px-4 py-3 rounded-2xl border border-rose-100">
+                     <Ban size={16} />
+                     <span className="text-xs font-black">不代購菸酒</span>
+                 </div>
+             </div>
+          </div>
           
           {/* Section 1: Buyer Info (Global) */}
           <div className="bg-white rounded-[2.5rem] p-6 shadow-sm border border-slate-100">
