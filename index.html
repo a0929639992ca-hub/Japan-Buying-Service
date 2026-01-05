@@ -1,9 +1,17 @@
+
 <!DOCTYPE html>
 <html lang="zh-TW">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Rento 代購團 | 日本優質代購服務</title>
+    
+    <!-- iOS 主畫面圖示與設定 -->
+    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/10803/10803444.png" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="Rento 代購" />
+    
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
     <script>
@@ -42,6 +50,14 @@
         from { transform: translateY(10px); opacity: 0; }
         to { transform: translateY(0); opacity: 1; }
       }
+      /* 針對全螢幕模式優化 */
+      @media (display-mode: standalone) {
+        body {
+          -webkit-user-select: none;
+          user-select: none;
+          -webkit-tap-highlight-color: transparent;
+        }
+      }
     </style>
     <script type="importmap">
     {
@@ -59,7 +75,6 @@
   </head>
   <body>
     <div id="root"></div>
-    <!-- 使用 type="module" 載入，這是 ESM 運作的關鍵 -->
     <script type="module" src="./index.tsx"></script>
   </body>
 </html>

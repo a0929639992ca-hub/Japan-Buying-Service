@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { Plus, PackagePlus, AlertCircle, Loader2, Contact, Image as ImageIcon, X, Sparkles } from 'lucide-react';
+import { Plus, AlertCircle, Loader2, Contact, Image as ImageIcon, X, Sparkles, ShoppingBag } from 'lucide-react';
 import { HIDDEN_EXCHANGE_RATE } from '../constants.ts';
 import { OrderItem, OrderStatus } from '../types.ts';
 import { analyzeProduct } from '../services/geminiService.ts';
@@ -68,131 +68,106 @@ const OrderForm: React.FC<OrderFormProps> = ({ onAddOrder }) => {
   }
 
   return (
-    <div className="bg-white rounded-[2.5rem] shadow-sm border border-gray-100 overflow-hidden">
-      <div className="p-8 border-b border-gray-50 flex justify-between items-center">
-        <div>
-          <h2 className="text-xl font-black text-gray-900 flex items-center gap-2">
-            <PackagePlus className="text-primary" size={24} strokeWidth={2.5} />
-            快速委託
-          </h2>
-          <p className="text-xs text-gray-400 mt-1 font-bold tracking-tight uppercase">New Purchase Order</p>
+    <form onSubmit={handleSubmit} className="p-6 space-y-5 animate-slide-in">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+        <div className="space-y-4">
+          <div className="space-y-1.5">
+            <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-1">買家名稱</label>
+            <div className="relative group">
+              <Contact className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-300 group-focus-within:text-primary" size={14} />
+              <input
+                type="text" required value={buyerName}
+                onChange={(e) => setBuyerName(e.target.value)}
+                placeholder="輸入買家姓名或 ID"
+                className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-transparent rounded-xl focus:bg-white focus:ring-2 focus:ring-primary/10 focus:border-primary outline-none transition-all text-xs font-medium"
+              />
+            </div>
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-1">商品資訊</label>
+            <div className="flex gap-2">
+              <input
+                type="text" required value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="商品完整名稱"
+                className="flex-1 px-4 py-3 bg-gray-50 border border-transparent rounded-xl focus:bg-white focus:ring-2 focus:ring-primary/10 focus:border-primary outline-none transition-all text-xs font-medium"
+              />
+              <button
+                  type="button" onClick={handleSmartAnalyze}
+                  disabled={(!name && !imageUrl) || isAnalyzing}
+                  className="px-4 py-3 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 rounded-xl transition-all disabled:opacity-50"
+              >
+                  {isAnalyzing ? <Loader2 size={16} className="animate-spin" /> : <Sparkles size={16} />}
+              </button>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-1">價格 (JPY)</label>
+              <div className="relative">
+                <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-300 font-bold text-xs">¥</span>
+                <input
+                  type="number" required min="1" value={price}
+                  onChange={(e) => setPrice(e.target.value)}
+                  className="w-full pl-8 pr-4 py-3 bg-gray-50 border border-transparent rounded-xl focus:bg-white focus:ring-2 focus:ring-primary/10 focus:border-primary outline-none transition-all text-xs font-bold"
+                />
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-1">數量</label>
+              <input
+                type="number" required min="1" value={qty}
+                onChange={(e) => setQty(e.target.value)}
+                className="w-full px-4 py-3 bg-gray-50 border border-transparent rounded-xl focus:bg-white focus:ring-2 focus:ring-primary/10 focus:border-primary outline-none transition-all text-xs font-bold text-center"
+              />
+            </div>
+          </div>
+        </div>
+
+        <div className="space-y-1.5 flex flex-col">
+          <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-1">商品預覽</label>
+          <div className="flex-1 min-h-[120px] relative">
+            {imageUrl ? (
+              <div className="w-full h-full rounded-2xl overflow-hidden border border-gray-100 group relative">
+                <img src={imageUrl} alt="Preview" className="w-full h-full object-cover" />
+                <button onClick={() => setImageUrl('')} className="absolute top-2 right-2 bg-white/80 p-1.5 rounded-full text-rose-500 shadow-sm"><X size={14} /></button>
+              </div>
+            ) : (
+              <button
+                type="button" onClick={() => fileInputRef.current?.click()}
+                className="w-full h-full border-2 border-dashed border-gray-100 rounded-2xl flex flex-col items-center justify-center gap-1.5 text-gray-300 hover:text-primary hover:border-primary/50 transition-all"
+              >
+                <ImageIcon size={24} strokeWidth={1.5} />
+                <span className="text-[9px] font-black uppercase tracking-widest">點擊上傳</span>
+              </button>
+            )}
+            <input type="file" accept="image/*" onChange={handleFileChange} ref={fileInputRef} className="hidden" />
+          </div>
         </div>
       </div>
 
-      <form onSubmit={handleSubmit} className="p-8 space-y-8">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          <div className="space-y-6">
-            <div className="space-y-2">
-              <label className="text-xs font-black text-gray-400 uppercase tracking-widest ml-1">Buyer Name</label>
-              <div className="relative group">
-                <Contact className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-primary transition-colors" size={18} />
-                <input
-                  type="text" required value={buyerName}
-                  onChange={(e) => setBuyerName(e.target.value)}
-                  placeholder="買家姓名"
-                  className="w-full pl-12 pr-4 py-4 bg-gray-50 border border-transparent rounded-2xl focus:bg-white focus:ring-2 focus:ring-primary/10 focus:border-primary outline-none transition-all text-sm font-medium"
-                />
+      {analysisResult && (
+           <div className="bg-indigo-50/50 p-4 rounded-xl border border-indigo-100 text-xs text-indigo-900 animate-slide-in">
+              <div className="font-black text-[9px] uppercase tracking-widest mb-1.5 flex items-center gap-1.5">
+                  <AlertCircle size={12} className="text-indigo-500"/>
+                  AI 分析建議
               </div>
-            </div>
+              <p className="whitespace-pre-line leading-relaxed opacity-80 line-clamp-3">{analysisResult}</p>
+           </div>
+      )}
 
-            <div className="space-y-2">
-              <label className="text-xs font-black text-gray-400 uppercase tracking-widest ml-1">Product Details</label>
-              <div className="flex gap-2">
-                <input
-                  type="text" required value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="商品名稱"
-                  className="flex-1 px-4 py-4 bg-gray-50 border border-transparent rounded-2xl focus:bg-white focus:ring-2 focus:ring-primary/10 focus:border-primary outline-none transition-all text-sm font-medium"
-                />
-                <button
-                    type="button" onClick={handleSmartAnalyze}
-                    disabled={(!name && !imageUrl) || isAnalyzing}
-                    className="px-5 py-4 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 rounded-2xl transition-all disabled:opacity-50"
-                >
-                    {isAnalyzing ? <Loader2 size={18} className="animate-spin" /> : <Sparkles size={18} />}
-                </button>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <label className="text-xs font-black text-gray-400 uppercase tracking-widest ml-1">Price (JPY)</label>
-                <div className="relative">
-                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 font-bold">¥</span>
-                  <input
-                    type="number" required min="1" value={price}
-                    onChange={(e) => setPrice(e.target.value)}
-                    className="w-full pl-10 pr-4 py-4 bg-gray-50 border border-transparent rounded-2xl focus:bg-white focus:ring-2 focus:ring-primary/10 focus:border-primary outline-none transition-all text-sm font-bold"
-                  />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <label className="text-xs font-black text-gray-400 uppercase tracking-widest ml-1">Quantity</label>
-                <input
-                  type="number" required min="1" value={qty}
-                  onChange={(e) => setQty(e.target.value)}
-                  className="w-full px-4 py-4 bg-gray-50 border border-transparent rounded-2xl focus:bg-white focus:ring-2 focus:ring-primary/10 focus:border-primary outline-none transition-all text-sm font-bold text-center"
-                />
-              </div>
-            </div>
-          </div>
-
-          <div className="space-y-6">
-             <div className="space-y-2 h-full flex flex-col">
-              <label className="text-xs font-black text-gray-400 uppercase tracking-widest ml-1">Product Photo</label>
-              <div className="flex-1 min-h-[160px] relative">
-                {imageUrl ? (
-                  <div className="w-full h-full rounded-3xl overflow-hidden border border-gray-100 group relative">
-                    <img src={imageUrl} alt="Preview" className="w-full h-full object-cover" />
-                    <button 
-                      onClick={() => setImageUrl('')}
-                      className="absolute top-3 right-3 bg-white/80 backdrop-blur p-1.5 rounded-full text-rose-500 hover:bg-white transition-all shadow-sm"
-                    >
-                      <X size={16} />
-                    </button>
-                  </div>
-                ) : (
-                  <button
-                    type="button" onClick={() => fileInputRef.current?.click()}
-                    className="w-full h-full border-2 border-dashed border-gray-100 rounded-3xl flex flex-col items-center justify-center gap-2 text-gray-300 hover:text-primary hover:border-primary/50 hover:bg-primary/5 transition-all"
-                  >
-                    <ImageIcon size={40} strokeWidth={1.5} />
-                    <span className="text-[10px] font-black uppercase tracking-widest">Click to upload</span>
-                  </button>
-                )}
-                <input type="file" accept="image/*" onChange={handleFileChange} ref={fileInputRef} className="hidden" />
-              </div>
-            </div>
-          </div>
+      <div className="flex items-center justify-between gap-4 pt-2">
+        <div>
+          <p className="text-[9px] text-gray-400 font-bold uppercase tracking-widest mb-0.5">預估總額</p>
+          <div className="text-xl font-black text-gray-900 tracking-tight">NT$ {estimatedTotal.toLocaleString()}</div>
         </div>
-
-        {analysisResult && (
-             <div className="bg-indigo-50/50 p-6 rounded-3xl border border-indigo-100 text-sm text-indigo-900 animate-slide-in">
-                <div className="font-black text-xs uppercase tracking-widest mb-2 flex items-center gap-2">
-                    <AlertCircle size={14} className="text-indigo-500"/>
-                    AI Analysis Result
-                </div>
-                <p className="whitespace-pre-line leading-relaxed">{analysisResult}</p>
-             </div>
-        )}
-
-        <div className="bg-gray-900 text-white rounded-[2rem] p-6 flex flex-col md:flex-row justify-between items-center gap-6 shadow-xl shadow-gray-200">
-          <div>
-            <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-1">Estimated Total Amount</p>
-            <div className="text-3xl font-black tracking-tight">
-               NT$ {estimatedTotal.toLocaleString()}
-            </div>
-          </div>
-          <button
-            type="submit"
-            className="w-full md:w-auto bg-white text-gray-900 hover:bg-primary hover:text-white px-10 py-4 rounded-2xl font-black text-sm transition-all transform active:scale-95 flex items-center justify-center gap-2 shadow-lg shadow-white/5"
-          >
-            <Plus size={18} strokeWidth={3} />
-            加入採購名單
-          </button>
-        </div>
-      </form>
-    </div>
+        <button type="submit" className="bg-primary text-white hover:bg-primary/90 px-8 py-3.5 rounded-xl font-black text-xs transition-all flex items-center gap-2 shadow-lg shadow-primary/20">
+          <Plus size={16} strokeWidth={3} /> 加入名單
+        </button>
+      </div>
+    </form>
   );
 };
 

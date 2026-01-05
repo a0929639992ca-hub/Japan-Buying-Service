@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { Send, Flower2, ShoppingBag, User, Image as ImageIcon, X, CheckCircle2, MessageSquareText } from 'lucide-react';
+import { Send, Flower2, ShoppingBag, User, Image as ImageIcon, CheckCircle2, MessageSquareText, Share } from 'lucide-react';
 import { OrderItem, OrderStatus } from '../types.ts';
 
 const BuyerForm: React.FC = () => {
@@ -22,13 +22,15 @@ const BuyerForm: React.FC = () => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    setSubmitted(true);
     
+    // 雖然不同裝置 localStorage 不通，但保留此邏輯供同裝置測試
     const orderData: OrderItem = {
       id: `EXT-${Date.now()}`,
       buyerName,
       productName,
       imageUrl: imageUrl || undefined,
-      originalPriceJpy: 0, // 價格留給代購主填寫
+      originalPriceJpy: 0,
       requestedQuantity: parseInt(qty),
       purchasedQuantity: 0,
       calculatedPrice: 0,
@@ -37,36 +39,55 @@ const BuyerForm: React.FC = () => {
       notes: notes,
       createdAt: Date.now(),
     };
-
-    // 模擬自動回傳：寫入公共暫存區
     const currentQueue = JSON.parse(localStorage.getItem('rento_external_queue') || '[]');
     localStorage.setItem('rento_external_queue', JSON.stringify([...currentQueue, orderData]));
+  };
+
+  const handleShare = async () => {
+    const shareText = `🌸 Rento 代購委託單\n------------------\n👤 買家：${buyerName}\n📦 商品：${productName}\n🔢 數量：${qty}\n📝 備註：${notes || '無'}\n------------------\n團長請確認報價！`;
     
-    setSubmitted(true);
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: 'Rento 代購委託',
+          text: shareText,
+        });
+      } catch (err) {
+        console.log('Share failed', err);
+      }
+    } else {
+      // 不支援 Web Share API 時的備案（例如電腦版），直接開 Line 連結
+      window.open(`https://line.me/R/msg/text/?${encodeURIComponent(shareText)}`, '_blank');
+    }
   };
 
   if (submitted) {
     return (
-      <div className="min-h-screen bg-rose-50 flex items-center justify-center p-6 font-sans">
-        <div className="bg-white rounded-[3rem] p-12 max-w-md w-full shadow-2xl text-center space-y-8 border border-rose-100 animate-slide-in">
-          <div className="w-24 h-24 bg-green-50 text-green-500 rounded-full flex items-center justify-center mx-auto shadow-inner relative">
-            <CheckCircle2 size={56} strokeWidth={2.5} />
-            <div className="absolute inset-0 bg-green-400 rounded-full animate-ping opacity-20"></div>
+      <div className="min-h-screen bg-white flex items-center justify-center p-6 font-sans">
+        <div className="max-w-md w-full text-center space-y-8 animate-slide-in">
+          <div className="w-20 h-20 bg-green-50 text-green-500 rounded-full flex items-center justify-center mx-auto relative">
+            <CheckCircle2 size={48} strokeWidth={2.5} />
           </div>
-          <div>
-            <h2 className="text-3xl font-black text-gray-900">委託成功！</h2>
-            <p className="text-gray-500 mt-3 font-medium leading-relaxed">
-              您的代購請求已自動傳送給 <span className="text-primary font-bold">Rento 團長</span>。<br/>
-              團長確認商品與價格後會再與您聯繫。
+          <div className="space-y-2">
+            <h2 className="text-2xl font-black text-gray-900">委託單已就緒！</h2>
+            <p className="text-sm text-gray-500 font-medium px-4">
+              請點擊下方按鈕將資訊 <span className="text-primary font-bold">傳送給團長</span> 即可完成委託。
             </p>
           </div>
           
-          <div className="pt-4">
+          <div className="space-y-3 px-4">
             <button 
-              onClick={() => window.location.reload()}
-              className="w-full bg-gray-900 text-white py-5 rounded-2xl font-black hover:bg-gray-800 transition-all shadow-xl"
+              onClick={handleShare}
+              className="w-full bg-[#06C755] text-white py-5 rounded-2xl font-black shadow-xl shadow-green-100 flex items-center justify-center gap-3 active:scale-95 transition-all"
             >
-              填寫另一件商品
+              <Share size={20} />
+              傳送給團長 (Line/分享)
+            </button>
+            <button 
+              onClick={() => setSubmitted(false)}
+              className="w-full bg-gray-50 text-gray-400 py-4 rounded-2xl font-bold text-sm"
+            >
+              返回修改內容
             </button>
           </div>
           <p className="text-[10px] text-gray-300 font-bold uppercase tracking-widest">Thank you for choosing Rento</p>
@@ -76,83 +97,78 @@ const BuyerForm: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-rose-50/50 pb-12 font-sans">
-      <header className="bg-white/80 backdrop-blur-md border-b border-rose-100 p-6 sticky top-0 z-10">
-        <div className="max-w-xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="bg-primary p-2 rounded-2xl text-white shadow-lg shadow-primary/20">
-              <Flower2 size={20} />
+    <div className="min-h-screen bg-[#fafafa] pb-8 font-sans">
+      <header className="bg-white border-b border-gray-100 p-4 sticky top-0 z-10 flex items-center justify-center">
+          <div className="flex items-center gap-2">
+            <div className="bg-primary p-1.5 rounded-xl text-white">
+              <Flower2 size={16} />
             </div>
-            <div>
-              <h1 className="text-lg font-black text-gray-800 leading-none">Rento 買家委託</h1>
-              <p className="text-[10px] text-gray-400 font-bold uppercase mt-1">Direct Purchase Request</p>
-            </div>
+            <h1 className="text-sm font-black text-gray-800 uppercase tracking-tighter">Rento 買家委託</h1>
           </div>
-        </div>
       </header>
 
-      <main className="max-w-xl mx-auto p-6 mt-4">
-        <div className="bg-white rounded-[2.5rem] shadow-xl border border-rose-100 overflow-hidden">
-          <form onSubmit={handleSubmit} className="p-8 space-y-8">
-            <div className="space-y-6">
-              <div className="space-y-2">
+      <main className="max-w-xl mx-auto p-5">
+        <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
+          <form onSubmit={handleSubmit} className="p-6 space-y-6">
+            <div className="space-y-4">
+              <div className="space-y-1.5">
                 <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">您的稱呼 / Line ID</label>
-                <div className="relative group">
-                  <User className="absolute left-4 top-1/2 -translate-y-1/2 text-rose-200 group-focus-within:text-primary transition-colors" size={18} />
+                <div className="relative">
+                  <User className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300" size={16} />
                   <input
                     type="text" required value={buyerName}
                     onChange={(e) => setBuyerName(e.target.value)}
-                    placeholder="方便團長辨識您的身份"
-                    className="w-full pl-12 pr-4 py-4 bg-gray-50 rounded-2xl border border-transparent focus:bg-white focus:border-primary focus:ring-4 focus:ring-primary/5 outline-none transition-all font-bold text-sm"
+                    placeholder="方便團長辨識您"
+                    className="w-full pl-11 pr-4 py-3.5 bg-gray-50 rounded-xl border-none focus:ring-2 focus:ring-primary/10 outline-none transition-all font-bold text-sm"
                   />
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">商品名稱</label>
-                <div className="relative group">
-                    <ShoppingBag className="absolute left-4 top-1/2 -translate-y-1/2 text-rose-200 group-focus-within:text-primary transition-colors" size={18} />
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">想要代購的商品</label>
+                <div className="relative">
+                    <ShoppingBag className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300" size={16} />
                     <input
                         type="text" required value={productName}
                         onChange={(e) => setProductName(e.target.value)}
-                        placeholder="請輸入商品完整名稱"
-                        className="w-full pl-12 pr-4 py-4 bg-gray-50 rounded-2xl border border-transparent focus:bg-white focus:border-primary focus:ring-4 focus:ring-primary/5 outline-none transition-all font-bold text-sm"
+                        placeholder="請輸入商品名稱"
+                        className="w-full pl-11 pr-4 py-3.5 bg-gray-50 rounded-xl border-none focus:ring-2 focus:ring-primary/10 outline-none transition-all font-bold text-sm"
                     />
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">委託數量</label>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">數量</label>
                     <input
                         type="number" required min="1" value={qty}
                         onChange={(e) => setQty(e.target.value)}
-                        className="w-full px-4 py-4 bg-gray-50 rounded-2xl border border-transparent focus:bg-white focus:border-primary focus:ring-4 focus:ring-primary/5 outline-none transition-all font-black text-center text-sm"
+                        className="w-full px-4 py-3.5 bg-gray-50 rounded-xl border-none focus:ring-2 focus:ring-primary/10 outline-none transition-all font-black text-center text-sm"
                     />
                 </div>
-                <div className="space-y-2">
-                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">商品照片 (選填)</label>
+                <div className="space-y-1.5">
+                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">商品照 (選填)</label>
                     <button
                         type="button" onClick={() => fileInputRef.current?.click()}
-                        className={`w-full py-4 rounded-2xl border-2 border-dashed transition-all flex items-center justify-center gap-2 ${imageUrl ? 'border-primary bg-primary/5 text-primary' : 'border-rose-100 text-rose-200 hover:border-primary/50'}`}
+                        className={`w-full py-3.5 rounded-xl border-2 border-dashed transition-all flex items-center justify-center gap-2 ${imageUrl ? 'border-primary bg-primary/5 text-primary' : 'border-gray-100 text-gray-300'}`}
                     >
-                        {imageUrl ? <ImageIcon size={18} /> : <ImageIcon size={18} />}
-                        <span className="text-xs font-black">{imageUrl ? '照片已就緒' : '點擊上傳'}</span>
+                        <ImageIcon size={16} />
+                        <span className="text-[10px] font-black">{imageUrl ? '已就緒' : '上傳照片'}</span>
                     </button>
                     <input type="file" accept="image/*" onChange={handleFileChange} ref={fileInputRef} className="hidden" />
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">備註 / 規格說明</label>
-                <div className="relative group">
-                  <MessageSquareText className="absolute left-4 top-4 text-rose-200 group-focus-within:text-primary transition-colors" size={18} />
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">規格說明 (顏色/尺寸)</label>
+                <div className="relative">
+                  <MessageSquareText className="absolute left-4 top-4 text-gray-300" size={16} />
                   <textarea
                     value={notes}
                     onChange={(e) => setNotes(e.target.value)}
-                    placeholder="請輸入顏色、尺寸、網址或其他要求..."
+                    placeholder="例如：藍色 L 號，網址..."
                     rows={3}
-                    className="w-full pl-12 pr-4 py-4 bg-gray-50 rounded-3xl border border-transparent focus:bg-white focus:border-primary focus:ring-4 focus:ring-primary/5 outline-none transition-all font-medium text-sm resize-none"
+                    className="w-full pl-11 pr-4 py-4 bg-gray-50 rounded-xl border-none focus:ring-2 focus:ring-primary/10 outline-none transition-all font-medium text-sm resize-none"
                   />
                 </div>
               </div>
@@ -160,15 +176,15 @@ const BuyerForm: React.FC = () => {
 
             <button
               type="submit"
-              className="w-full bg-primary text-white py-6 rounded-[2rem] font-black shadow-2xl shadow-primary/30 flex items-center justify-center gap-3 hover:scale-[1.02] active:scale-95 transition-all"
+              className="w-full bg-primary text-white py-5 rounded-2xl font-black shadow-lg shadow-primary/20 flex items-center justify-center gap-3 active:scale-95 transition-all"
             >
-              <Send size={22} />
-              送出委託請求
+              <Send size={18} />
+              完成填單
             </button>
           </form>
         </div>
         
-        <p className="text-center text-[10px] text-gray-300 mt-8 font-bold uppercase tracking-widest">Rento Buy Team - 讓日本代購變簡單</p>
+        <p className="text-center text-[9px] text-gray-300 mt-8 font-bold uppercase tracking-widest">Rento - Premium Japan Service</p>
       </main>
     </div>
   );
