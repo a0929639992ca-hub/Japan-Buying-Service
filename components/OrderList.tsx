@@ -1,10 +1,10 @@
 import React from 'react';
-import { OrderItem, OrderStatus } from '../types';
-import { STATUS_LABELS, STATUS_COLORS } from '../constants';
+import { OrderItem, OrderStatus } from '../types.ts';
+import { STATUS_LABELS, STATUS_COLORS } from '../constants.ts';
 import { 
   Package, Clock, Trash2, User, ImageIcon, CheckCircle, 
   CreditCard, ShoppingCart, Minus, Plus, AlertCircle, 
-  Share2, Copy, Check 
+  Share2, Check 
 } from 'lucide-react';
 
 interface OrderListProps {
@@ -26,7 +26,6 @@ const OrderList: React.FC<OrderListProps> = ({ orders, onRemoveOrder, onUpdateOr
     );
   }
 
-  // Grouping orders by buyerName
   const groupedOrders = orders.reduce((groups, order) => {
     const name = order.buyerName || '未知買家';
     if (!groups[name]) groups[name] = [];
@@ -70,7 +69,6 @@ const OrderList: React.FC<OrderListProps> = ({ orders, onRemoveOrder, onUpdateOr
 
         return (
           <div key={buyerName} className="space-y-6 animate-slide-in">
-            {/* Buyer Header Card */}
             <div className="bg-white p-6 rounded-[2rem] shadow-sm border border-gray-100 flex flex-col md:flex-row md:items-center justify-between gap-6">
               <div className="flex items-center gap-4">
                 <div className="w-14 h-14 bg-indigo-50 rounded-2xl flex items-center justify-center text-indigo-600">
@@ -104,12 +102,10 @@ const OrderList: React.FC<OrderListProps> = ({ orders, onRemoveOrder, onUpdateOr
               </div>
             </div>
 
-            {/* Product Cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {items.map((order) => (
                 <div key={order.id} className="bg-white rounded-[2rem] border border-gray-100 hover:border-primary/20 hover:shadow-xl hover:shadow-gray-200/50 transition-all group overflow-hidden flex flex-col">
                   <div className="p-6 flex gap-5 flex-1">
-                    {/* Image */}
                     <div className="w-24 h-24 shrink-0 rounded-2xl bg-gray-50 border border-gray-50 overflow-hidden flex items-center justify-center relative">
                       {order.imageUrl ? (
                         <img src={order.imageUrl} alt={order.productName} className="w-full h-full object-cover" />
@@ -149,7 +145,6 @@ const OrderList: React.FC<OrderListProps> = ({ orders, onRemoveOrder, onUpdateOr
                     </div>
                   </div>
 
-                  {/* Qty Progress Bar & Controls */}
                   <div className="px-6 pb-2">
                     <div className="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden">
                       <div 
@@ -169,7 +164,6 @@ const OrderList: React.FC<OrderListProps> = ({ orders, onRemoveOrder, onUpdateOr
                     </div>
                   </div>
 
-                  {/* Actions Bar */}
                   <div className="px-6 py-4 bg-gray-50/50 border-t border-gray-50 flex items-center justify-between">
                     <div className="flex gap-2">
                       <button 

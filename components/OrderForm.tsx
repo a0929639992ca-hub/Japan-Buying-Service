@@ -1,8 +1,8 @@
 import React, { useState, useRef } from 'react';
 import { Plus, ShoppingBag, AlertCircle, Loader2, User, Image as ImageIcon, X, Sparkles } from 'lucide-react';
-import { HIDDEN_EXCHANGE_RATE } from '../constants';
-import { OrderItem, OrderStatus } from '../types';
-import { analyzeProduct } from '../services/geminiService';
+import { HIDDEN_EXCHANGE_RATE } from '../constants.ts';
+import { OrderItem, OrderStatus } from '../types.ts';
+import { analyzeProduct } from '../services/geminiService.ts';
 
 interface OrderFormProps {
   onAddOrder: (order: OrderItem) => void;
@@ -81,7 +81,6 @@ const OrderForm: React.FC<OrderFormProps> = ({ onAddOrder }) => {
 
       <form onSubmit={handleSubmit} className="p-8 space-y-8">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          {/* Left Column */}
           <div className="space-y-6">
             <div className="space-y-2">
               <label className="text-xs font-black text-gray-400 uppercase tracking-widest ml-1">Buyer Name</label>
@@ -138,7 +137,6 @@ const OrderForm: React.FC<OrderFormProps> = ({ onAddOrder }) => {
             </div>
           </div>
 
-          {/* Right Column (Image & AI) */}
           <div className="space-y-6">
              <div className="space-y-2 h-full flex flex-col">
               <label className="text-xs font-black text-gray-400 uppercase tracking-widest ml-1">Product Photo</label>
@@ -178,7 +176,6 @@ const OrderForm: React.FC<OrderFormProps> = ({ onAddOrder }) => {
              </div>
         )}
 
-        {/* Footer Summary */}
         <div className="bg-gray-900 text-white rounded-[2rem] p-6 flex flex-col md:flex-row justify-between items-center gap-6 shadow-xl shadow-gray-200">
           <div>
             <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-1">Estimated Total Amount</p>

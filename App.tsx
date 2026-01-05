@@ -1,13 +1,12 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { OrderItem } from './types';
-import Calculator from './components/Calculator';
-import OrderForm from './components/OrderForm';
-import OrderList from './components/OrderList';
-import AIAssistant from './components/AIAssistant';
+import { OrderItem } from './types.ts';
+import Calculator from './components/Calculator.tsx';
+import OrderForm from './components/OrderForm.tsx';
+import OrderList from './components/OrderList.tsx';
+import AIAssistant from './components/AIAssistant.tsx';
 import { Calculator as CalcIcon, Plane, Search, BarChart3, TrendingUp } from 'lucide-react';
 
 const App: React.FC = () => {
-  // Persistence with LocalStorage
   const [orders, setOrders] = useState<OrderItem[]>(() => {
     const saved = localStorage.getItem('sakura_orders');
     return saved ? JSON.parse(saved) : [];
@@ -49,7 +48,6 @@ const App: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-background text-gray-900 pb-24 font-sans">
-      {/* Header */}
       <header className="sticky top-0 z-30 glass border-b border-gray-100">
         <div className="max-w-4xl mx-auto px-6 py-4 flex justify-between items-center">
           <div className="flex items-center gap-3">
@@ -76,7 +74,6 @@ const App: React.FC = () => {
       </header>
 
       <main className="max-w-4xl mx-auto px-6 py-8 space-y-10">
-        {/* Global Dashboard */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm flex items-center gap-4">
             <div className="w-12 h-12 bg-rose-50 rounded-2xl flex items-center justify-center text-rose-500">
@@ -109,7 +106,6 @@ const App: React.FC = () => {
 
         <OrderForm onAddOrder={handleAddOrder} />
         
-        {/* Search Bar */}
         <div className="relative group">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-primary transition-colors" size={18} />
           <input 

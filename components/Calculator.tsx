@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { HIDDEN_EXCHANGE_RATE } from '../constants';
+import { HIDDEN_EXCHANGE_RATE } from '../constants.ts';
 import { Calculator as CalcIcon, RefreshCw, X } from 'lucide-react';
 
 interface CalculatorProps {
@@ -14,7 +14,6 @@ const Calculator: React.FC<CalculatorProps> = ({ onClose, isOpen }) => {
   useEffect(() => {
     const val = parseFloat(jpyAmount);
     if (!isNaN(val) && val >= 0) {
-      // Logic using the hidden rate
       setTwdResult(Math.ceil(val * HIDDEN_EXCHANGE_RATE));
     } else {
       setTwdResult(null);
