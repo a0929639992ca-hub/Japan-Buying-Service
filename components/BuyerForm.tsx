@@ -23,13 +23,15 @@ const BuyerForm: React.FC = () => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitted(true);
-    
-    // 雖然不同裝置 localStorage 不通，但保留此邏輯供同裝置測試
-    const orderData: OrderItem = {
-      id: `EXT-${Date.now()}`,
+  };
+
+  const handleShare = async () => {
+    // 建立要匯入的資料物件
+    const orderData = {
+      id: `MAGIC-${Date.now()}`,
       buyerName,
       productName,
-      imageUrl: imageUrl || undefined,
+      // 網址長度有限制，不建議將 base64 圖片放入網址，建議透過 Line 傳圖，這裡只傳文字資料
       originalPriceJpy: 0,
       requestedQuantity: parseInt(qty),
       purchasedQuantity: 0,
@@ -39,12 +41,12 @@ const BuyerForm: React.FC = () => {
       notes: notes,
       createdAt: Date.now(),
     };
-    const currentQueue = JSON.parse(localStorage.getItem('rento_external_queue') || '[]');
-    localStorage.setItem('rento_external_queue', JSON.stringify([...currentQueue, orderData]));
-  };
 
-  const handleShare = async () => {
-    const shareText = `🌸 Rento 代購委託單\n------------------\n👤 買家：${buyerName}\n📦 商品：${productName}\n🔢 數量：${qty}\n📝 備註：${notes || '無'}\n------------------\n團長請確認報價！`;
+    // 加密資料放入網址 (btoa 編碼)
+    const encodedData = btoa(unescape(encodeURIComponent(JSON.stringify(orderData))));
+    const magicLink = `${window.location.origin}${window.location.pathname}?importData=${encodedData}`;
+
+    const shareText = `🌸 Rento 代購委託單\n------------------\n👤 買家：${buyerName}\n📦 商品：${productName}\n🔢 數量：${qty}\n📝 備註：${notes || '無'}\n------------------\n🔗 團長一鍵匯入：\n${magicLink}`;
     
     if (navigator.share) {
       try {
@@ -54,9 +56,9 @@ const BuyerForm: React.FC = () => {
         });
       } catch (err) {
         console.log('Share failed', err);
+        window.open(`https://line.me/R/msg/text/?${encodeURIComponent(shareText)}`, '_blank');
       }
     } else {
-      // 不支援 Web Share API 時的備案（例如電腦版），直接開 Line 連結
       window.open(`https://line.me/R/msg/text/?${encodeURIComponent(shareText)}`, '_blank');
     }
   };

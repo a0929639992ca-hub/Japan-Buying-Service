@@ -21,9 +21,22 @@ const App: React.FC = () => {
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
+    
     if (params.get('mode') === 'buyer') {
       setViewMode('buyer');
       return;
+    }
+
+    const encodedData = params.get('importData');
+    if (encodedData) {
+      try {
+        const decodedString = decodeURIComponent(escape(atob(encodedData)));
+        const data = JSON.parse(decodedString);
+        setImportData(data);
+        window.history.replaceState({}, '', window.location.pathname);
+      } catch (e) {
+        console.error('解析匯入資料失敗', e);
+      }
     }
 
     const checkQueue = () => {
@@ -44,7 +57,7 @@ const App: React.FC = () => {
 
   const handleAddOrder = (order: OrderItem) => {
     setOrders((prev) => [order, ...prev]);
-    setIsFormOpen(false); // 新增完自動收合
+    setIsFormOpen(false);
   };
 
   const handleRemoveOrder = (id: string) => {
@@ -102,8 +115,8 @@ const App: React.FC = () => {
       <header className="sticky top-0 z-30 bg-white/80 backdrop-blur-xl border-b border-gray-100">
         <div className="max-w-4xl mx-auto px-4 py-3 flex justify-between items-center">
           <div className="flex items-center gap-2">
-            <div className="bg-primary p-1.5 rounded-xl text-white shadow-md shadow-primary/20">
-              <Flower2 size={18} strokeWidth={2.5} />
+            <div className="bg-primary p-1.5 rounded-xl text-accent shadow-md shadow-primary/20">
+              <Plus size={18} strokeWidth={3} className="rotate-45" />
             </div>
             <h1 className="text-lg font-black tracking-tighter text-gray-900">Rento 後台</h1>
           </div>
@@ -118,7 +131,6 @@ const App: React.FC = () => {
       </header>
 
       <main className="max-w-4xl mx-auto px-4 py-6 space-y-6">
-        {/* 緊湊數據看板 */}
         <div className="grid grid-cols-3 gap-3">
           <div className="bg-white px-4 py-3 rounded-2xl border border-gray-100 shadow-sm">
             <p className="text-[9px] font-black text-gray-400 uppercase mb-0.5">總支出 JPY</p>
@@ -134,7 +146,6 @@ const App: React.FC = () => {
           </div>
         </div>
 
-        {/* 摺疊式委託表單 */}
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden transition-all">
           <button 
             onClick={() => setIsFormOpen(!isFormOpen)}
@@ -153,7 +164,6 @@ const App: React.FC = () => {
           )}
         </div>
         
-        {/* 搜尋欄 */}
         <div className="relative group">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300 group-focus-within:text-primary transition-colors" size={16} />
           <input 
@@ -165,7 +175,6 @@ const App: React.FC = () => {
           />
         </div>
         
-        {/* 訂單列表 */}
         <OrderList 
           orders={filteredOrders} 
           onRemoveOrder={handleRemoveOrder} 
