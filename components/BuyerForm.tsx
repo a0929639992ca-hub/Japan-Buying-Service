@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { Send, ShoppingBag, User, Image as ImageIcon, CheckCircle2, MessageSquareText, Share, Plus, Loader2 } from 'lucide-react';
+import { Send, ShoppingBag, User, Image as ImageIcon, CheckCircle2, MessageSquareText, Share, Plus, Loader2, Copy } from 'lucide-react';
 import { OrderStatus } from '../types.ts';
 
 const BuyerForm: React.FC = () => {
@@ -21,6 +21,11 @@ const BuyerForm: React.FC = () => {
     }
   };
 
+  const generateMagicLink = (data: any) => {
+    const encodedData = btoa(unescape(encodeURIComponent(JSON.stringify(data))));
+    return `${window.location.origin}${window.location.pathname}?importData=${encodedData}`;
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setIsSending(true);
@@ -40,11 +45,20 @@ const BuyerForm: React.FC = () => {
       createdAt: Date.now(),
     };
 
+    const magicLink = generateMagicLink(orderData);
+
     // 模擬網路傳輸時間
     setTimeout(() => {
-      // 寫入公共委託池 (localStorage)
+      // 1. 同步至 LocalStorage (供同環境測試用)
       const queue = JSON.parse(localStorage.getItem('rento_external_queue') || '[]');
       localStorage.setItem('rento_external_queue', JSON.stringify([...queue, orderData]));
+      
+      // 2. 自動複製到剪貼簿 (跨環境同步關鍵)
+      try {
+        navigator.clipboard.writeText(magicLink);
+      } catch (err) {
+        console.warn("自動複製失敗，將改由手動複製按鈕提供代碼。");
+      }
       
       setIsSending(false);
       setSubmitted(true);
@@ -52,7 +66,6 @@ const BuyerForm: React.FC = () => {
   };
 
   const handleManualShare = async () => {
-    // 備用方案：如果自動同步失效，買家仍可以手動分享 Magic Link
     const orderData = {
       id: `MAGIC-${Date.now()}`,
       buyerName,
@@ -61,10 +74,8 @@ const BuyerForm: React.FC = () => {
       notes: notes,
     };
 
-    const encodedData = btoa(unescape(encodeURIComponent(JSON.stringify(orderData))));
-    const magicLink = `${window.location.origin}${window.location.pathname}?importData=${encodedData}`;
-
-    const shareText = `🌸 Rento 代購委託\n👤 買家：${buyerName}\n📦 商品：${productName}\n🔢 數量：${qty}\n🔗 團長專用匯入連結：\n${magicLink}`;
+    const magicLink = generateMagicLink(orderData);
+    const shareText = `🌸 Rento 代購委託單\n👤 買家：${buyerName}\n📦 商品：${productName}\n🔢 數量：${qty}\n🔗 點擊連結匯入：\n${magicLink}`;
     
     if (navigator.share) {
       try {
@@ -83,33 +94,36 @@ const BuyerForm: React.FC = () => {
         <div className="max-w-md w-full text-center space-y-8 animate-slide-in">
           <div className="w-24 h-24 bg-green-50 text-green-500 rounded-full flex items-center justify-center mx-auto relative shadow-inner">
             <CheckCircle2 size={56} strokeWidth={2.5} />
-            <div className="absolute -top-1 -right-1 w-6 h-6 bg-green-500 text-white rounded-full flex items-center justify-center animate-bounce">
-                <Plus size={14} strokeWidth={4} />
+            <div className="absolute -top-1 -right-1 w-7 h-7 bg-green-500 text-white rounded-full flex items-center justify-center animate-bounce shadow-lg">
+                <Plus size={16} strokeWidth={4} />
             </div>
           </div>
-          <div className="space-y-3">
-            <h2 className="text-2xl font-black text-gray-900">委託單已即時送達！</h2>
-            <p className="text-sm text-gray-500 font-medium px-4 leading-relaxed">
-              您的委託已透過 <span className="text-primary font-bold">Rento Auto-Sync</span> 送往團長後台。<br/>
-              團長收單後將會盡快為您進行採購與報價。
-            </p>
+          <div className="space-y-4">
+            <h2 className="text-2xl font-black text-gray-900">同步就緒！</h2>
+            <div className="bg-blue-50/50 p-4 rounded-2xl border border-blue-100">
+                <p className="text-sm text-blue-700 font-bold leading-relaxed">
+                    委託資訊已自動複製到剪貼簿。<br/>
+                    <span className="text-xs font-medium opacity-80">團長只需開啟 App，系統就會自動感應收單。</span>
+                </p>
+            </div>
           </div>
           
           <div className="space-y-3 px-4 pt-4">
             <button 
-              onClick={() => setSubmitted(false)}
-              className="w-full bg-primary text-white py-5 rounded-2xl font-black shadow-xl shadow-primary/20 flex items-center justify-center gap-3 active:scale-95 transition-all"
+              onClick={handleManualShare}
+              className="w-full bg-[#06C755] text-white py-5 rounded-3xl font-black shadow-xl shadow-green-100 flex items-center justify-center gap-3 active:scale-95 transition-all"
             >
-              再填一單
+              <Share size={20} />
+              傳送給團長 (Line)
             </button>
             <button 
-              onClick={handleManualShare}
-              className="w-full bg-gray-50 text-gray-400 py-4 rounded-2xl font-bold text-xs flex items-center justify-center gap-2"
+              onClick={() => setSubmitted(false)}
+              className="w-full bg-gray-50 text-gray-400 py-4 rounded-2xl font-bold text-xs"
             >
-              <Share size={14} /> 手動分享明細給團長
+              返回修改內容
             </button>
           </div>
-          <p className="text-[10px] text-gray-300 font-bold uppercase tracking-widest pt-8">Powered by Rento Real-time Sync</p>
+          <p className="text-[10px] text-gray-300 font-bold uppercase tracking-widest pt-8">Powered by Rento Clipboard Sync</p>
         </div>
       </div>
     );
@@ -117,12 +131,15 @@ const BuyerForm: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-[#fafafa] pb-8 font-sans">
-      <header className="bg-white/90 backdrop-blur-xl border-b border-gray-100 p-4 sticky top-0 z-10 flex items-center justify-center safe-pt">
-          <div className="flex items-center gap-2">
-            <div className="bg-primary p-1.5 rounded-xl text-accent shadow-sm">
-              <Plus size={16} strokeWidth={3} className="rotate-45" />
+      <header className="bg-white/90 backdrop-blur-xl border-b border-gray-100 sticky top-0 z-40">
+          <div className="safe-pt"></div>
+          <div className="p-4 flex items-center justify-center">
+            <div className="flex items-center gap-2">
+                <div className="bg-primary p-1.5 rounded-xl text-accent shadow-sm">
+                <Plus size={16} strokeWidth={3} className="rotate-45" />
+                </div>
+                <h1 className="text-sm font-black text-gray-800 uppercase tracking-widest leading-none">Rento 買家填單</h1>
             </div>
-            <h1 className="text-sm font-black text-gray-800 uppercase tracking-widest leading-none">Rento 買家填單</h1>
           </div>
       </header>
 
@@ -134,54 +151,54 @@ const BuyerForm: React.FC = () => {
                 <Loader2 size={48} className="text-primary animate-spin" />
                 <Send size={16} className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-primary" />
               </div>
-              <p className="text-sm font-black text-primary animate-pulse tracking-tight">正在即時同步至團長後台...</p>
+              <p className="text-sm font-black text-primary animate-pulse tracking-tight">正在產生收單代碼...</p>
             </div>
           )}
           
           <form onSubmit={handleSubmit} className="p-8 space-y-7">
             <div className="space-y-5">
               <div className="space-y-2">
-                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">買家稱呼 / LINE ID</label>
+                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">您的稱呼</label>
                 <div className="relative">
-                  <User className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300" size={16} />
+                  <User className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300" size={18} />
                   <input
                     type="text" required value={buyerName}
                     onChange={(e) => setBuyerName(e.target.value)}
-                    placeholder="方便團長與您聯繫"
-                    className="w-full pl-12 pr-4 py-4 bg-gray-50 rounded-2xl border-none focus:ring-2 focus:ring-primary/10 outline-none transition-all font-bold text-sm"
+                    placeholder="方便團長辨認"
+                    className="w-full pl-12 pr-4 py-4 bg-gray-50 rounded-2xl border-none focus:ring-4 focus:ring-primary/5 outline-none transition-all font-bold text-sm"
                   />
                 </div>
               </div>
 
               <div className="space-y-2">
-                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">代購商品名稱</label>
+                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">代購商品</label>
                 <div className="relative">
-                    <ShoppingBag className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300" size={16} />
+                    <ShoppingBag className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300" size={18} />
                     <input
                         type="text" required value={productName}
                         onChange={(e) => setProductName(e.target.value)}
                         placeholder="請輸入商品名稱"
-                        className="w-full pl-12 pr-4 py-4 bg-gray-50 rounded-2xl border-none focus:ring-2 focus:ring-primary/10 outline-none transition-all font-bold text-sm"
+                        className="w-full pl-12 pr-4 py-4 bg-gray-50 rounded-2xl border-none focus:ring-4 focus:ring-primary/5 outline-none transition-all font-bold text-sm"
                     />
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1 text-center block">數量</label>
+                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest text-center block">數量</label>
                     <input
                         type="number" required min="1" value={qty}
                         onChange={(e) => setQty(e.target.value)}
-                        className="w-full px-4 py-4 bg-gray-50 rounded-2xl border-none focus:ring-2 focus:ring-primary/10 outline-none transition-all font-black text-center text-sm"
+                        className="w-full px-4 py-4 bg-gray-50 rounded-2xl border-none focus:ring-4 focus:ring-primary/5 outline-none transition-all font-black text-center text-sm"
                     />
                 </div>
                 <div className="space-y-2">
-                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1 text-center block">商品照 (選填)</label>
+                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest text-center block">商品照 (選填)</label>
                     <button
                         type="button" onClick={() => fileInputRef.current?.click()}
                         className={`w-full py-4 rounded-2xl border-2 border-dashed transition-all flex items-center justify-center gap-2 ${imageUrl ? 'border-primary bg-primary/5 text-primary' : 'border-gray-100 text-gray-300'}`}
                     >
-                        <ImageIcon size={18} />
+                        <ImageIcon size={20} />
                         <span className="text-[10px] font-black uppercase">{imageUrl ? '已就緒' : '點擊上傳'}</span>
                     </button>
                     <input type="file" accept="image/*" onChange={handleFileChange} ref={fileInputRef} className="hidden" />
@@ -189,15 +206,15 @@ const BuyerForm: React.FC = () => {
               </div>
 
               <div className="space-y-2">
-                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">規格/備註 (如顏色、尺寸)</label>
+                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">規格說明 (顏色/尺寸)</label>
                 <div className="relative">
-                  <MessageSquareText className="absolute left-4 top-4 text-gray-300" size={16} />
+                  <MessageSquareText className="absolute left-4 top-4 text-gray-300" size={18} />
                   <textarea
                     value={notes}
                     onChange={(e) => setNotes(e.target.value)}
-                    placeholder="請輸入詳細規格，如：米白色 L 號..."
+                    placeholder="例如：米白色 M 號，網址..."
                     rows={3}
-                    className="w-full pl-12 pr-4 py-4 bg-gray-50 rounded-2xl border-none focus:ring-2 focus:ring-primary/10 outline-none transition-all font-medium text-sm resize-none"
+                    className="w-full pl-12 pr-4 py-4 bg-gray-50 rounded-2xl border-none focus:ring-4 focus:ring-primary/5 outline-none transition-all font-medium text-sm resize-none"
                   />
                 </div>
               </div>
@@ -209,18 +226,10 @@ const BuyerForm: React.FC = () => {
               className="w-full bg-primary text-white py-5 rounded-3xl font-black shadow-xl shadow-primary/20 flex items-center justify-center gap-3 active:scale-95 transition-all disabled:opacity-50"
             >
               <Send size={20} />
-              完成填單並送出
+              確認委託並複製代碼
             </button>
           </form>
         </div>
-        
-        <div className="mt-10 px-6 py-4 bg-blue-50/50 rounded-2xl border border-blue-100/50">
-            <p className="text-[10px] text-blue-400 font-bold text-center leading-relaxed">
-                Rento 採用自動同步技術，填單完成後團長後台將會即時彈出通知，無需手動等待。
-            </p>
-        </div>
-        
-        <p className="text-center text-[9px] text-gray-300 mt-8 font-bold uppercase tracking-[0.3em]">Rento Premium Service</p>
       </main>
     </div>
   );
