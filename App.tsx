@@ -31,10 +31,16 @@ const App: React.FC = () => {
     const data = params.get('importData');
     if (data) {
       try {
-        const decoded = JSON.parse(atob(data));
+        // 修正：支援 Unicode (中文) 的 Base64 解碼方式
+        const binString = atob(data);
+        const jsonStr = decodeURIComponent(Array.from(binString).map((c) => {
+          return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+        }).join(''));
+        
+        const decoded = JSON.parse(jsonStr);
         setImportData(decoded);
       } catch (e) {
-        console.error("匯入資料格式錯誤", e);
+        console.error("匯入資料格式錯誤或解析失敗", e);
       }
     }
   }, []);

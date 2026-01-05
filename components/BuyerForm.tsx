@@ -25,25 +25,34 @@ const BuyerForm: React.FC = () => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    const orderData: OrderItem = {
-      id: Date.now().toString(),
-      buyerName,
-      productName,
-      imageUrl: imageUrl || undefined,
-      originalPriceJpy: parseFloat(price),
-      requestedQuantity: parseInt(qty),
-      purchasedQuantity: 0,
-      calculatedPrice: Math.ceil(parseFloat(price) * parseInt(qty) * HIDDEN_EXCHANGE_RATE),
-      status: OrderStatus.PENDING,
-      isPaid: false,
-      createdAt: Date.now(),
-    };
+    try {
+      const orderData: OrderItem = {
+        id: Date.now().toString(),
+        buyerName,
+        productName,
+        imageUrl: imageUrl || undefined,
+        originalPriceJpy: parseFloat(price),
+        requestedQuantity: parseInt(qty),
+        purchasedQuantity: 0,
+        calculatedPrice: Math.ceil(parseFloat(price) * parseInt(qty) * HIDDEN_EXCHANGE_RATE),
+        status: OrderStatus.PENDING,
+        isPaid: false,
+        createdAt: Date.now(),
+      };
 
-    // 生成 Base64 加密連結
-    const encoded = btoa(JSON.stringify(orderData));
-    const url = `${window.location.origin}${window.location.pathname}?importData=${encoded}`;
-    setMagicLink(url);
-    setSubmitted(true);
+      // 修正：支援 Unicode (中文) 的 Base64 編碼方式
+      const jsonStr = JSON.stringify(orderData);
+      const encoded = btoa(encodeURIComponent(jsonStr).replace(/%([0-9A-F]{2})/g, (match, p1) => {
+        return String.fromCharCode(parseInt(p1, 16));
+      }));
+      
+      const url = `${window.location.origin}${window.location.pathname}?importData=${encoded}`;
+      setMagicLink(url);
+      setSubmitted(true);
+    } catch (err) {
+      console.error("生成連結失敗:", err);
+      alert("生成連結時發生錯誤，請稍後再試。");
+    }
   };
 
   if (submitted) {
