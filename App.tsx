@@ -6,7 +6,7 @@ import OrderList from './components/OrderList.tsx';
 import AIAssistant from './components/AIAssistant.tsx';
 import BuyerForm from './components/BuyerForm.tsx';
 import ImportModal from './components/ImportModal.tsx';
-import { JapaneseYen, Flower2, Search, Banknote, Coins, Calculator as CalcIcon, Share2, ArrowLeft } from 'lucide-react';
+import { JapaneseYen, Flower2, Search, Banknote, Coins, Calculator as CalcIcon, Share2, Bell } from 'lucide-react';
 
 const App: React.FC = () => {
   const [orders, setOrders] = useState<OrderItem[]>(() => {
@@ -18,32 +18,27 @@ const App: React.FC = () => {
   const [importData, setImportData] = useState<OrderItem | null>(null);
   const [viewMode, setViewMode] = useState<'admin' | 'buyer'>('admin');
 
-  // 初始化偵測網址參數
+  // 初始化偵測網址參數與自動隊列
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    
-    // 偵測是否為買家模式
     if (params.get('mode') === 'buyer') {
       setViewMode('buyer');
+      return;
     }
 
-    // 偵測是否有匯入資料
-    const data = params.get('importData');
-    if (data) {
-      try {
-        // 修正：支援 Unicode (中文) 的 Base64 解碼方式
-        const binString = atob(data);
-        const jsonStr = decodeURIComponent(Array.from(binString).map((c) => {
-          return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
-        }).join(''));
-        
-        const decoded = JSON.parse(jsonStr);
-        setImportData(decoded);
-      } catch (e) {
-        console.error("匯入資料格式錯誤或解析失敗", e);
+    // 代購主模式：啟動自動監控隊列
+    const checkQueue = () => {
+      const queue = JSON.parse(localStorage.getItem('rento_external_queue') || '[]');
+      if (queue.length > 0 && !importData) {
+        setImportData(queue[0]);
       }
-    }
-  }, []);
+    };
+
+    const timer = setInterval(checkQueue, 2000);
+    checkQueue(); // 立即檢查一次
+
+    return () => clearInterval(timer);
+  }, [importData]);
 
   useEffect(() => {
     localStorage.setItem('sakura_orders', JSON.stringify(orders));
@@ -63,10 +58,27 @@ const App: React.FC = () => {
     setOrders((prev) => prev.map(o => o.id === id ? { ...o, ...updates } : o));
   };
 
+  const handleConfirmImport = (order: OrderItem) => {
+    handleAddOrder(order);
+    setImportData(null);
+    // 從隊列中移除已處理的項目
+    const queue = JSON.parse(localStorage.getItem('rento_external_queue') || '[]');
+    localStorage.setItem('rento_external_queue', JSON.stringify(queue.filter((q: OrderItem) => q.id !== order.id)));
+  };
+
+  const handleCancelImport = () => {
+    const orderToSkip = importData;
+    setImportData(null);
+    if (orderToSkip) {
+        const queue = JSON.parse(localStorage.getItem('rento_external_queue') || '[]');
+        localStorage.setItem('rento_external_queue', JSON.stringify(queue.filter((q: OrderItem) => q.id !== orderToSkip.id)));
+    }
+  };
+
   const handleCopyRequestLink = () => {
     const url = `${window.location.origin}${window.location.pathname}?mode=buyer`;
     navigator.clipboard.writeText(url);
-    alert('買家填單連結已複製！您可以發送給客戶填寫。');
+    alert('買家填單連結已複製！您可以發送給客戶填寫，填完後會自動出現在您的後台。');
   };
 
   const filteredOrders = useMemo(() => {
@@ -83,7 +95,6 @@ const App: React.FC = () => {
     return { totalJpy, totalTwd, paidTwd };
   }, [orders]);
 
-  // 如果是買家模式，渲染簡化的買家介面
   if (viewMode === 'buyer') {
     return <BuyerForm />;
   }
@@ -107,15 +118,14 @@ const App: React.FC = () => {
           <div className="flex items-center gap-2">
             <button
               onClick={handleCopyRequestLink}
-              title="分享買家填單連結"
-              className="p-2.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-600 rounded-xl transition-all active:scale-95 border border-indigo-100 flex items-center gap-2"
+              className="p-2.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-600 rounded-xl transition-all border border-indigo-100 flex items-center gap-2"
             >
               <Share2 size={18} />
-              <span className="text-xs font-bold hidden sm:inline">發送填單網址</span>
+              <span className="text-xs font-bold hidden sm:inline">獲取填單網址</span>
             </button>
             <button
               onClick={() => setIsCalculatorOpen(true)}
-              className="p-2.5 bg-gray-50 hover:bg-gray-100 text-gray-600 rounded-xl transition-all active:scale-95 border border-gray-100"
+              className="p-2.5 bg-gray-50 hover:bg-gray-100 text-gray-600 rounded-xl transition-all border border-gray-100"
             >
               <CalcIcon size={20} />
             </button>
@@ -182,16 +192,8 @@ const App: React.FC = () => {
       {importData && (
         <ImportModal 
           data={importData} 
-          onConfirm={(order) => {
-            handleAddOrder(order);
-            setImportData(null);
-            // 清除網址參數
-            window.history.replaceState({}, '', window.location.pathname);
-          }}
-          onCancel={() => {
-            setImportData(null);
-            window.history.replaceState({}, '', window.location.pathname);
-          }}
+          onConfirm={handleConfirmImport}
+          onCancel={handleCancelImport}
         />
       )}
 

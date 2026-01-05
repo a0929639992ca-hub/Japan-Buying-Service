@@ -4,7 +4,7 @@ import { STATUS_LABELS, STATUS_COLORS } from '../constants.ts';
 import { 
   ShoppingBasket, Clock, Trash2, Contact, ImageIcon, 
   CreditCard, ShoppingCart, Minus, Plus, 
-  Share2, Check, Truck 
+  Share2, Check, Truck, AlertCircle, Edit3
 } from 'lucide-react';
 
 interface OrderListProps {
@@ -49,11 +49,25 @@ const OrderList: React.FC<OrderListProps> = ({ orders, onRemoveOrder, onUpdateOr
     });
   };
 
+  const handleEditPrice = (order: OrderItem) => {
+    const newPrice = prompt(`請輸入 ${order.productName} 的日幣單價 (JPY):`, order.originalPriceJpy.toString());
+    if (newPrice !== null) {
+        const p = parseFloat(newPrice);
+        if (!isNaN(p)) {
+            const HIDDEN_EXCHANGE_RATE = 0.25;
+            onUpdateOrder(order.id, { 
+                originalPriceJpy: p,
+                calculatedPrice: Math.ceil(p * order.requestedQuantity * HIDDEN_EXCHANGE_RATE)
+            });
+        }
+    }
+  };
+
   const copySummary = (name: string, items: OrderItem[]) => {
     const total = items.reduce((sum, i) => sum + i.calculatedPrice, 0);
     const text = `🌸 Rento 代購團 代購清單 - ${name}\n` +
       `--------------------------\n` +
-      items.map(i => `• ${i.productName} (x${i.requestedQuantity}): NT$ ${i.calculatedPrice}`).join('\n') +
+      items.map(i => `• ${i.productName} (x${i.requestedQuantity}): ${i.originalPriceJpy === 0 ? '待報價' : 'NT$ ' + i.calculatedPrice}`).join('\n') +
       `\n--------------------------\n總計: NT$ ${total.toLocaleString()}`;
     
     navigator.clipboard.writeText(text);
@@ -104,9 +118,15 @@ const OrderList: React.FC<OrderListProps> = ({ orders, onRemoveOrder, onUpdateOr
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {items.map((order) => (
-                <div key={order.id} className="bg-white rounded-[2rem] border border-gray-100 hover:border-primary/20 hover:shadow-xl hover:shadow-gray-200/50 transition-all group overflow-hidden flex flex-col">
+                <div key={order.id} className="bg-white rounded-[2rem] border border-gray-100 hover:border-primary/20 hover:shadow-xl hover:shadow-gray-200/50 transition-all group overflow-hidden flex flex-col relative">
+                  {order.originalPriceJpy === 0 && (
+                    <div className="absolute top-4 right-4 z-10 animate-pulse">
+                        <AlertCircle className="text-amber-500" size={20} />
+                    </div>
+                  )}
+
                   <div className="p-6 flex gap-5 flex-1">
-                    <div className="w-24 h-24 shrink-0 rounded-2xl bg-gray-50 border border-gray-50 overflow-hidden flex items-center justify-center relative">
+                    <div className="w-24 h-24 shrink-0 rounded-2xl bg-gray-50 border border-gray-100 overflow-hidden flex items-center justify-center relative">
                       {order.imageUrl ? (
                         <img src={order.imageUrl} alt={order.productName} className="w-full h-full object-cover" />
                       ) : (
@@ -133,17 +153,31 @@ const OrderList: React.FC<OrderListProps> = ({ orders, onRemoveOrder, onUpdateOr
                       </p>
 
                       <div className="mt-4 flex items-center justify-between">
-                        <div>
-                          <p className="text-[10px] text-gray-400 font-bold tracking-tight">日幣單價</p>
-                          <p className="text-sm font-bold text-gray-700">¥ {order.originalPriceJpy.toLocaleString()}</p>
+                        <div className="cursor-pointer group/price" onClick={() => handleEditPrice(order)}>
+                          <p className="text-[10px] text-gray-400 font-bold tracking-tight flex items-center gap-1 group-hover/price:text-primary transition-colors">
+                            日幣單價 <Edit3 size={8} />
+                          </p>
+                          <p className={`text-sm font-bold ${order.originalPriceJpy === 0 ? 'text-amber-500 underline decoration-dotted' : 'text-gray-700'}`}>
+                            ¥ {order.originalPriceJpy.toLocaleString()}
+                          </p>
                         </div>
                         <div className="text-right">
                           <p className="text-[10px] text-gray-400 font-bold tracking-tight">預估台幣</p>
-                          <p className="text-base font-black text-gray-900">NT$ {order.calculatedPrice.toLocaleString()}</p>
+                          <p className="text-base font-black text-gray-900">
+                            {order.originalPriceJpy === 0 ? '待填寫' : `NT$ ${order.calculatedPrice.toLocaleString()}`}
+                          </p>
                         </div>
                       </div>
                     </div>
                   </div>
+
+                  {order.notes && (
+                      <div className="px-6 mb-2">
+                          <p className="text-[10px] bg-rose-50 text-rose-500 px-3 py-1.5 rounded-xl font-medium line-clamp-1 italic">
+                              "{order.notes}"
+                          </p>
+                      </div>
+                  )}
 
                   <div className="px-6 pb-2">
                     <div className="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden">
@@ -159,8 +193,8 @@ const OrderList: React.FC<OrderListProps> = ({ orders, onRemoveOrder, onUpdateOr
                       <div className="flex items-center gap-3">
                         <span className="text-xs font-black text-gray-700">{order.purchasedQuantity} / {order.requestedQuantity}</span>
                         <div className="flex bg-gray-50 rounded-lg p-0.5 border border-gray-100">
-                          <button onClick={() => adjustPurchasedQty(order, -1)} className="p-1 hover:text-primary"><Minus size={12} /></button>
-                          <button onClick={() => adjustPurchasedQty(order, 1)} className="p-1 hover:text-primary"><Plus size={12} /></button>
+                          <button onClick={() => adjustPurchasedQty(order, -1)} className="p-1 hover:text-primary transition-colors"><Minus size={12} /></button>
+                          <button onClick={() => adjustPurchasedQty(order, 1)} className="p-1 hover:text-primary transition-colors"><Plus size={12} /></button>
                         </div>
                       </div>
                     </div>
