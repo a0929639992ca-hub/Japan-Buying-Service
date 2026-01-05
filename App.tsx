@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { OrderItem } from './types.ts';
 import Calculator from './components/Calculator.tsx';
@@ -6,7 +7,8 @@ import OrderList from './components/OrderList.tsx';
 import AIAssistant from './components/AIAssistant.tsx';
 import BuyerForm from './components/BuyerForm.tsx';
 import ImportModal from './components/ImportModal.tsx';
-import { Search, Calculator as CalcIcon, Share2, Plus, ChevronUp, ChevronDown, ClipboardPaste, Globe, RefreshCcw } from 'lucide-react';
+import { parseOrderFromText } from './services/geminiService.ts';
+import { Search, Calculator as CalcIcon, Share2, Plus, ChevronUp, ChevronDown, ClipboardPaste, Globe, Zap, Loader2, JapaneseYen } from 'lucide-react';
 
 const App: React.FC = () => {
   const [orders, setOrders] = useState<OrderItem[]>(() => {
@@ -18,44 +20,50 @@ const App: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [importData, setImportData] = useState<OrderItem | null>(null);
   const [viewMode, setViewMode] = useState<'admin' | 'buyer'>('admin');
+  const [isAISensing, setIsAISensing] = useState(false);
   
-  // 記錄本階段已處理的 ID
   const processedIds = useRef<Set<string>>(new Set());
+  const lastClipboardText = useRef<string>('');
 
   const parseImportData = (encodedData: string) => {
     try {
-      const decodedString = decodeURIComponent(escape(atob(encodedData)));
-      return JSON.parse(decodedString);
-    } catch (e) {
-      return null;
-    }
+      return JSON.parse(decodeURIComponent(escape(atob(encodedData))));
+    } catch (e) { return null; }
   };
 
-  const checkClipboard = useCallback(async (isManual = false) => {
-    // 如果已經在顯示彈窗，就不重複檢查
-    if (importData) return;
+  // 全能感應器：同時檢查剪貼簿文字 (AI) 與 魔術連結 (ImportData)
+  const masterSensor = useCallback(async () => {
+    if (importData || isAISensing) return;
 
     try {
       const text = await navigator.clipboard.readText();
+      if (!text || text === lastClipboardText.current) return;
+      lastClipboardText.current = text;
+
+      // 1. 優先檢查是否為 Rento 魔術連結
       const match = text.match(/importData=([^&\s]+)/);
       if (match && match[1]) {
         const data = parseImportData(match[1]);
-        if (data && data.id && !processedIds.current.has(data.id)) {
-          if (!orders.some(o => o.id === data.id)) {
-            setImportData(data);
-          } else if (isManual) {
-            alert('此委託單已在清單中');
-          }
-        } else if (isManual && data) {
-          alert('此委託單剛才已嘗試處理過');
+        if (data && !orders.some(o => o.id === data.id)) {
+          setImportData(data);
+          return;
         }
-      } else if (isManual) {
-        alert('剪貼簿中沒有偵測到新的委託代碼');
+      }
+
+      // 2. AI 語意感應：檢查是否含有日幣、數量或代購關鍵字
+      const aiKeywords = ['日幣', '日元', 'JPY', '數量', '個', '件', '幫我買', '代購'];
+      if (aiKeywords.some(key => text.includes(key))) {
+        setIsAISensing(true);
+        const aiParsedOrder = await parseOrderFromText(text);
+        if (aiParsedOrder) {
+          setImportData(aiParsedOrder);
+        }
+        setIsAISensing(false);
       }
     } catch (e) {
-      if (isManual) alert('無法存取剪貼簿，請確保已授權。您也可以直接在螢幕上長按貼上。');
+      // 靜默處理權限問題
     }
-  }, [importData, orders]);
+  }, [importData, orders, isAISensing]);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -64,38 +72,34 @@ const App: React.FC = () => {
       return;
     }
 
-    // 全局貼上監聽 (iOS 穩定收單關鍵)
-    const handleGlobalPaste = (e: ClipboardEvent) => {
+    // 監聽全局貼上事件
+    const handlePaste = (e: ClipboardEvent) => {
       const text = e.clipboardData?.getData('text');
-      if (text && text.includes('importData=')) {
-        const match = text.match(/importData=([^&\s]+)/);
-        if (match && match[1]) {
-          const data = parseImportData(match[1]);
-          if (data) setImportData(data);
-        }
-      }
+      if (text) masterSensor();
     };
 
-    // 定期輪詢 LocalStorage (同裝置同網頁同步)
-    const checkQueue = () => {
+    // 模擬雲端輪詢 (如果有外部來源)
+    const cloudPoll = () => {
       const queue = JSON.parse(localStorage.getItem('rento_external_queue') || '[]');
       if (queue.length > 0 && !importData) {
-        const nextItem = queue[0];
-        if (!processedIds.current.has(nextItem.id) && !orders.some(o => o.id === nextItem.id)) {
-          setImportData(nextItem);
-        }
+        const next = queue[0];
+        if (!orders.some(o => o.id === next.id)) setImportData(next);
       }
     };
 
-    window.addEventListener('paste', handleGlobalPaste);
-    document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') checkClipboard(); });
-    const timer = setInterval(checkQueue, 1500);
+    window.addEventListener('paste', handlePaste);
+    window.addEventListener('focus', masterSensor);
+    const interval = setInterval(() => {
+        masterSensor();
+        cloudPoll();
+    }, 2000);
 
     return () => {
-      clearInterval(timer);
-      window.removeEventListener('paste', handleGlobalPaste);
+      window.removeEventListener('paste', handlePaste);
+      window.removeEventListener('focus', masterSensor);
+      clearInterval(interval);
     };
-  }, [importData, checkClipboard, orders]);
+  }, [masterSensor, importData, orders]);
 
   useEffect(() => {
     localStorage.setItem('sakura_orders', JSON.stringify(orders));
@@ -107,9 +111,7 @@ const App: React.FC = () => {
   };
 
   const handleRemoveOrder = (id: string) => {
-    if (confirm('確定要刪除嗎？')) {
-      setOrders((prev) => prev.filter((o) => o.id !== id));
-    }
+    if (confirm('確定刪除？')) setOrders((prev) => prev.filter((o) => o.id !== id));
   };
 
   const handleUpdateOrder = (id: string, updates: Partial<OrderItem>) => {
@@ -118,150 +120,135 @@ const App: React.FC = () => {
 
   const handleConfirmImport = (order: OrderItem) => {
     handleAddOrder(order);
-    processedIds.current.add(order.id);
     setImportData(null);
     const queue = JSON.parse(localStorage.getItem('rento_external_queue') || '[]');
     localStorage.setItem('rento_external_queue', JSON.stringify(queue.filter((q: any) => q.id !== order.id)));
-    try { navigator.clipboard.writeText(''); } catch(e) {}
+    navigator.clipboard.writeText('');
   };
 
-  const handleCancelImport = () => {
-    if (importData) processedIds.current.add(importData.id);
-    setImportData(null);
-    try { navigator.clipboard.writeText(''); } catch(e) {}
-  };
+  const stats = useMemo(() => ({
+    jpy: orders.reduce((s, o) => s + (o.originalPriceJpy * o.requestedQuantity), 0),
+    twd: orders.reduce((s, o) => s + o.calculatedPrice, 0),
+    paid: orders.filter(o => o.isPaid).reduce((s, o) => s + o.calculatedPrice, 0)
+  }), [orders]);
 
-  const handleCopyRequestLink = () => {
-    const url = `${window.location.origin}${window.location.pathname}?mode=buyer`;
-    navigator.clipboard.writeText(url);
-    alert('買家填單連結已複製！');
-  };
-
+  // Fix: Added filteredOrders to resolve "Cannot find name 'filteredOrders'" error.
   const filteredOrders = useMemo(() => {
-    return orders.filter(o => 
-      o.buyerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      o.productName.toLowerCase().includes(searchQuery.toLowerCase())
+    const query = searchQuery.toLowerCase().trim();
+    if (!query) return orders;
+    return orders.filter(order => 
+      order.buyerName.toLowerCase().includes(query) ||
+      order.productName.toLowerCase().includes(query)
     );
   }, [orders, searchQuery]);
 
-  const stats = useMemo(() => {
-    const totalJpy = orders.reduce((sum, o) => sum + (o.originalPriceJpy * o.requestedQuantity), 0);
-    const totalTwd = orders.reduce((sum, o) => sum + o.calculatedPrice, 0);
-    const paidTwd = orders.filter(o => o.isPaid).reduce((sum, o) => sum + o.calculatedPrice, 0);
-    return { totalJpy, totalTwd, paidTwd };
-  }, [orders]);
-
-  if (viewMode === 'buyer') {
-    return <BuyerForm />;
-  }
+  if (viewMode === 'buyer') return <BuyerForm />;
 
   return (
-    <div className="min-h-screen bg-[#fcfcfc] text-gray-900 pb-12 font-sans">
-      <header className="sticky top-0 z-40 bg-white/80 backdrop-blur-xl border-b border-gray-100">
+    <div className="min-h-screen bg-[#F1F5F9] text-slate-900 pb-12 font-sans">
+      {/* 智慧感應 Header */}
+      <header className="sticky top-0 z-40 bg-white/90 backdrop-blur-2xl border-b border-slate-200 shadow-sm">
         <div className="safe-pt"></div>
-        <div className="max-w-4xl mx-auto px-5 py-4 flex justify-between items-center">
-          <button 
-            onClick={() => checkClipboard(true)}
-            className="flex items-center gap-3 active:scale-95 transition-all text-left group"
-          >
-            <div className="bg-primary p-2 rounded-xl text-accent shadow-lg shadow-primary/20 group-active:rotate-12 transition-transform">
-              <Globe size={18} strokeWidth={2.5} className="animate-pulse" />
+        <div className="max-w-5xl mx-auto px-5 py-4 flex justify-between items-center">
+          <div className="flex items-center gap-4">
+            <div className="relative">
+                <div className={`absolute inset-0 bg-indigo-500 rounded-2xl blur-md opacity-20 animate-pulse ${isAISensing ? 'scale-150' : ''}`}></div>
+                <div className="relative bg-slate-900 p-2.5 rounded-2xl text-amber-400 ring-1 ring-slate-800 shadow-xl">
+                  {isAISensing ? <Loader2 size={20} className="animate-spin" /> : <Zap size={20} fill="currentColor" />}
+                </div>
             </div>
-            <div>
-              <h1 className="text-xl font-black tracking-tighter text-gray-900 leading-none">Rento 管理</h1>
-              <div className="flex items-center gap-1.5 mt-1.5">
-                <span className="relative flex h-2 w-2">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
-                </span>
-                <span className="text-[9px] font-black text-green-600 uppercase tracking-widest">即時感應中</span>
+            <div className="flex flex-col">
+              <h1 className="text-xl font-black tracking-tighter text-slate-900">Rento <span className="text-indigo-600">Smart</span></h1>
+              <div className="flex items-center gap-1.5 mt-1">
+                <span className="flex h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                <span className="text-[9px] font-black text-emerald-600 uppercase tracking-widest">AI Sensing Active</span>
               </div>
             </div>
-          </button>
+          </div>
           
           <div className="flex items-center gap-2">
-            <button 
-              onClick={() => setIsCalculatorOpen(true)}
-              className="p-2.5 bg-gray-50 text-gray-400 rounded-xl border border-gray-100 shadow-sm"
-              title="計算機"
-            >
+            <button onClick={() => setIsCalculatorOpen(true)} className="p-3 bg-white border border-slate-200 rounded-2xl text-slate-400 hover:text-indigo-600 transition-all shadow-sm active:scale-90">
               <CalcIcon size={18} />
             </button>
-            <button 
-              onClick={handleCopyRequestLink} 
-              className="px-4 py-2.5 bg-indigo-50 text-indigo-600 rounded-xl transition-all border border-indigo-100 flex items-center gap-2 text-xs font-bold shadow-sm active:scale-95"
-            >
-              <Share2 size={14} />
-              <span className="hidden xs:inline">發送連結</span>
+            <button onClick={() => {
+              const url = `${window.location.origin}${window.location.pathname}?mode=buyer`;
+              navigator.clipboard.writeText(url);
+              alert('買家專屬填單連結已複製！');
+            }} className="px-5 py-3 bg-indigo-600 text-white rounded-2xl text-xs font-black shadow-lg shadow-indigo-200 flex items-center gap-2 active:scale-95">
+              <Share2 size={14} strokeWidth={3} />
+              <span className="hidden sm:inline">發送收單連結</span>
             </button>
           </div>
         </div>
       </header>
 
-      <main className="max-w-4xl mx-auto px-4 py-6 space-y-6">
-        <div className="grid grid-cols-3 gap-3">
-          <div className="bg-white px-4 py-4 rounded-[1.5rem] border border-gray-100 shadow-sm">
-            <p className="text-[9px] font-black text-gray-400 uppercase mb-1 tracking-wider">採購 JPY</p>
-            <p className="text-base font-black truncate">¥ {stats.totalJpy.toLocaleString()}</p>
+      <main className="max-w-5xl mx-auto px-5 py-8 space-y-8">
+        {/* 數據中心 */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="bg-white p-6 rounded-[2rem] border border-slate-200 shadow-sm">
+            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 flex items-center gap-1.5">
+                <JapaneseYen size={12} strokeWidth={3} /> 採購預算
+            </p>
+            <p className="text-2xl font-black text-slate-900">¥ {stats.jpy.toLocaleString()}</p>
           </div>
-          <div className="bg-white px-4 py-4 rounded-[1.5rem] border border-gray-100 shadow-sm">
-            <p className="text-[9px] font-black text-gray-400 uppercase mb-1 tracking-wider">預估總額</p>
-            <p className="text-base font-black truncate">NT$ {stats.totalTwd.toLocaleString()}</p>
+          <div className="bg-white p-6 rounded-[2rem] border border-slate-200 shadow-sm">
+            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">應收總計</p>
+            <p className="text-2xl font-black text-slate-900">NT$ {stats.twd.toLocaleString()}</p>
           </div>
-          <div className="bg-white px-4 py-4 rounded-[1.5rem] border border-gray-100 shadow-sm bg-green-50/30 border-green-100/50">
-            <p className="text-[9px] font-black text-green-500 uppercase mb-1 tracking-wider">實收帳款</p>
-            <p className="text-base font-black truncate text-green-600">NT$ {stats.paidTwd.toLocaleString()}</p>
+          <div className="bg-emerald-500 p-6 rounded-[2rem] border border-emerald-400 shadow-xl shadow-emerald-500/10">
+            <p className="text-[10px] font-black text-emerald-100 uppercase tracking-widest mb-2">實收進帳</p>
+            <p className="text-2xl font-black text-white">NT$ {stats.paid.toLocaleString()}</p>
           </div>
         </div>
 
-        <div className="bg-white rounded-[1.5rem] border border-gray-100 shadow-sm overflow-hidden transition-all">
-          <button 
-            onClick={() => setIsFormOpen(!isFormOpen)}
-            className="w-full px-6 py-5 flex items-center justify-between hover:bg-gray-50 transition-colors"
-          >
-            <div className="flex items-center gap-3">
-              <Plus size={20} className={`text-primary transition-transform duration-300 ${isFormOpen ? 'rotate-45' : ''}`} />
-              <span className="font-bold text-sm text-gray-700">快速建立委託</span>
+        {/* 手動按鈕 */}
+        <button onClick={() => setIsFormOpen(!isFormOpen)} className="w-full bg-white px-8 py-6 rounded-[2rem] border border-slate-200 shadow-sm flex items-center justify-between group transition-all hover:border-indigo-200">
+          <div className="flex items-center gap-4">
+            <div className={`p-2 rounded-xl transition-all ${isFormOpen ? 'bg-indigo-100 text-indigo-600 rotate-45' : 'bg-slate-100 text-slate-600'}`}>
+              <Plus size={22} strokeWidth={3} />
             </div>
-            {isFormOpen ? <ChevronUp size={16} className="text-gray-300"/> : <ChevronDown size={16} className="text-gray-300"/>}
-          </button>
-          {isFormOpen && (
-            <div className="border-t border-gray-50 bg-white">
-              <OrderForm onAddOrder={handleAddOrder} />
+            <div className="text-left">
+              <span className="font-black text-base text-slate-800 block">手動建立委託</span>
+              <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Manual Entry</span>
             </div>
-          )}
-        </div>
-        
+          </div>
+          {isFormOpen ? <ChevronUp size={20} className="text-slate-300"/> : <ChevronDown size={20} className="text-slate-300"/>}
+        </button>
+
+        {isFormOpen && (
+          <div className="bg-white rounded-[2rem] border border-slate-200 shadow-sm overflow-hidden animate-slide-in">
+            <OrderForm onAddOrder={handleAddOrder} />
+          </div>
+        )}
+
+        {/* 搜尋 */}
         <div className="relative group">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300 group-focus-within:text-primary transition-colors" size={18} />
+          <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-indigo-500 transition-colors" size={20} />
           <input 
             type="text"
-            placeholder="搜尋買家、商品名稱..."
+            placeholder="搜尋買家、商品..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-12 pr-4 py-4 bg-white border border-gray-100 rounded-[1.5rem] shadow-sm outline-none focus:ring-4 focus:ring-primary/5 focus:border-primary/30 transition-all text-sm font-medium"
+            className="w-full pl-16 pr-6 py-5 bg-white border border-slate-200 rounded-[2rem] shadow-sm outline-none focus:ring-4 focus:ring-indigo-500/5 transition-all text-sm font-bold"
           />
         </div>
+
+        <OrderList orders={filteredOrders} onRemoveOrder={handleRemoveOrder} onUpdateOrder={handleUpdateOrder} />
         
-        <OrderList 
-          orders={filteredOrders} 
-          onRemoveOrder={handleRemoveOrder} 
-          onUpdateOrder={handleUpdateOrder}
-        />
-        
-        <div className="py-10 text-center">
-            <p className="text-[10px] text-gray-300 font-bold uppercase tracking-[0.2em] mb-4">無法自動收單？請嘗試在螢幕任意處貼上</p>
-            <button 
-                onClick={() => checkClipboard(true)}
-                className="inline-flex items-center gap-2 px-5 py-2.5 bg-gray-50 border border-gray-100 rounded-full text-xs font-bold text-gray-400 active:bg-gray-100"
-            >
-                <ClipboardPaste size={14} /> 強制檢查剪貼簿
+        <div className="py-12 text-center space-y-4">
+            <div className="w-12 h-1 bg-slate-200 rounded-full mx-auto"></div>
+            <p className="text-[10px] text-slate-400 font-black uppercase tracking-[0.3em]">AI 智慧感應已啟動</p>
+            <p className="text-xs text-slate-300 max-w-xs mx-auto leading-relaxed">
+                您可以直接複製 Line 對話中的購買需求，<br/>App 會自動解析資訊並詢問收單。
+            </p>
+            <button onClick={masterSensor} className="inline-flex items-center gap-2 px-6 py-3 bg-white border border-slate-200 rounded-2xl text-xs font-black text-slate-500 hover:text-indigo-600 transition-all active:scale-95 shadow-sm">
+                <ClipboardPaste size={16} /> 強制同步感應
             </button>
         </div>
       </main>
 
       <Calculator isOpen={isCalculatorOpen} onClose={() => setIsCalculatorOpen(false)} />
-      {importData && <ImportModal data={importData} onConfirm={handleConfirmImport} onCancel={handleCancelImport} />}
+      {importData && <ImportModal data={importData} onConfirm={handleConfirmImport} onCancel={() => setImportData(null)} />}
       <AIAssistant />
     </div>
   );

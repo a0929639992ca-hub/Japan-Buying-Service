@@ -1,75 +1,88 @@
-import { GoogleGenAI } from "@google/genai";
+import { GoogleGenAI, Type } from "@google/genai";
+import { HIDDEN_EXCHANGE_RATE } from "../constants.ts";
 
-// 確保 API_KEY 存在或提供空字串避免初始化崩潰
-const getApiKey = () => {
+const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+const MODEL_NAME = 'gemini-3-flash-preview';
+
+/**
+ * AI 智慧解析：從一段雜亂的文字（如 Line 對話）中提取訂單資訊
+ */
+export const parseOrderFromText = async (text: string): Promise<any | null> => {
   try {
-    return process.env.API_KEY || "";
-  } catch (e) {
-    return "";
+    const response = await ai.models.generateContent({
+      model: MODEL_NAME,
+      contents: `分析以下代購委託文字，提取出 JSON 格式的訂單資訊。
+      文字內容："""${text}"""
+      
+      請嚴格遵守以下規則：
+      1. 如果文字中沒有明顯的商品購買意圖，請回傳 null。
+      2. 買家名稱若無提到，預設為 "未知買家"。
+      3. 商品名稱請翻譯成簡短好記的繁體中文。
+      4. 價格請提取日幣(JPY)數值。
+      5. 數量若無提到，預設為 1。
+      6. 請計算台幣價格(TWD)，公式為: 日幣 * 數量 * ${HIDDEN_EXCHANGE_RATE}，並無條件進位。`,
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            buyerName: { type: Type.STRING },
+            productName: { type: Type.STRING },
+            originalPriceJpy: { type: Type.NUMBER },
+            requestedQuantity: { type: Type.NUMBER },
+            calculatedPrice: { type: Type.NUMBER },
+            notes: { type: Type.STRING }
+          },
+          required: ["buyerName", "productName", "originalPriceJpy", "requestedQuantity", "calculatedPrice"]
+        }
+      }
+    });
+
+    const result = JSON.parse(response.text);
+    return {
+      ...result,
+      id: `AI-${Date.now()}`,
+      status: 'pending',
+      isPaid: false,
+      createdAt: Date.now()
+    };
+  } catch (error) {
+    console.error("AI Parsing Error:", error);
+    return null;
   }
 };
-
-const ai = new GoogleGenAI({ apiKey: getApiKey() });
-const MODEL_TEXT = 'gemini-3-flash-preview';
 
 export const generateAssistantResponse = async (
   prompt: string, 
   history: { role: string; text: string }[]
 ): Promise<string> => {
   try {
-    const formattedHistory = history.map(h => ({
-      role: h.role,
-      parts: [{ text: h.text }],
-    }));
-
     const chat = ai.chats.create({
-      model: MODEL_TEXT,
+      model: MODEL_NAME,
       config: {
-        systemInstruction: `
-          你是一位專業的日本代購小幫手，名叫 "Rento AI 助理"。
-          你的職責是：
-          1. 協助使用者翻譯日文商品說明成繁體中文。
-          2. 幫忙確認商品是否為國際禁運品。
-          3. 如果使用者詢問價格計算方式，請委婉告知「系統會根據當前匯率自動計算台幣報價」，不要透露具體的 0.25 數字。
-          4. 語氣親切、專業、有禮貌。
-        `,
+        systemInstruction: `你是一位專業的日本代購助理。協助翻譯商品、檢查規範。隱藏匯率為 ${HIDDEN_EXCHANGE_RATE}，對外僅稱「系統自動換算」。`,
       },
-      history: formattedHistory as any,
+      history: history.map(h => ({ role: h.role, parts: [{ text: h.text }] })) as any,
     });
-
     const result = await chat.sendMessage({ message: prompt });
-    return result.text || "抱歉，我目前無法回答這個問題。";
+    return result.text || "抱歉，我暫時無法回答。";
   } catch (error) {
-    console.error("Gemini API Error:", error);
-    return "小幫手目前連線不穩定，請稍後再試。";
+    return "連線不穩定，請稍後。";
   }
 };
 
 export const analyzeProduct = async (name: string, base64Image?: string): Promise<string> => {
    try {
-    const parts: any[] = [
-      { text: `分析代購商品: ${name || "未提供名稱"}` }
-    ];
-
+    const parts: any[] = [{ text: `分析代購商品: ${name || "未提供名稱"}` }];
     if (base64Image) {
-      parts.push({
-        inlineData: {
-          mimeType: "image/jpeg",
-          data: base64Image.split(',')[1] || base64Image,
-        }
-      });
-      parts.push({ text: "分析此圖片商品：翻譯名稱、確認是否有液體/電池等運送風險、給予購買建議。" });
-    } else {
-      parts.push({ text: "根據名稱分析此商品：翻譯名稱、判斷運送風險、給予代購建議。" });
+      parts.push({ inlineData: { mimeType: "image/jpeg", data: base64Image.split(',')[1] || base64Image } });
     }
-    
     const response = await ai.models.generateContent({
-      model: MODEL_TEXT,
+      model: MODEL_NAME,
       contents: { parts },
     });
-    return response.text || "無法分析此商品。";
+    return response.text || "無法分析。";
   } catch (error) {
-    console.error("Gemini Analysis Error:", error);
-    return "AI 分析暫時不可用。";
+    return "分析不可用。";
   }
 }
