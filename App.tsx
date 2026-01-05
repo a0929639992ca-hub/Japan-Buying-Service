@@ -20,6 +20,13 @@ const FIREBASE_CONFIG: FirebaseConfig = {
   appId: "1:322880924352:web:eb6e84cf8940e001405b25"
 };
 
+const RentoLogo = ({ className }: { className?: string }) => (
+  <svg viewBox="0 0 100 100" className={className} fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M30 25V75M30 25H52C67 25 67 50 52 50H30M52 50C52 50 57 75 77 65" stroke="currentColor" strokeWidth="12" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M68 62L78 65L75 75" stroke="currentColor" strokeWidth="12" strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>
+);
+
 const App: React.FC = () => {
   // --- 狀態管理 ---
   const [orders, setOrders] = useState<OrderItem[]>(() => {
@@ -210,7 +217,7 @@ const App: React.FC = () => {
             <div className="relative">
                 <div className={`absolute inset-0 bg-indigo-500 rounded-2xl blur-md opacity-20 ${isAISensing ? 'animate-pulse scale-150' : ''}`}></div>
                 <div className="relative bg-slate-900 p-2.5 rounded-2xl text-amber-400 ring-1 ring-slate-800 shadow-xl">
-                  {isAISensing ? <Loader2 size={20} className="animate-spin" /> : <Zap size={20} fill="currentColor" />}
+                  {isAISensing ? <Loader2 size={20} className="animate-spin" /> : <RentoLogo className="w-5 h-5" />}
                 </div>
             </div>
             <div className="flex flex-col">
