@@ -1,6 +1,6 @@
 import React from 'react';
 import { OrderItem, OrderStatus } from '../types.ts';
-import { STATUS_LABELS, STATUS_COLORS, HIDDEN_EXCHANGE_RATE } from '../constants.ts';
+import { STATUS_LABELS, STATUS_COLORS, calculateTwd, COST_EXCHANGE_RATE } from '../constants.ts';
 import { 
   ShoppingBasket, Trash2, Contact, 
   CreditCard, ShoppingCart, Minus, Plus, 
@@ -40,8 +40,8 @@ const OrderList: React.FC<OrderListProps> = ({ orders, onRemoveOrder, onUpdateOr
     return order.status === OrderStatus.PENDING ? order.requestedQuantity : order.purchasedQuantity;
   };
 
-  const calculateTwd = (jpyPrice: number, qty: number) => {
-    return Math.ceil(jpyPrice * qty * HIDDEN_EXCHANGE_RATE);
+  const calculateTwdPrice = (jpyPrice: number, qty: number) => {
+    return calculateTwd(jpyPrice * qty);
   };
 
   // --- 操作處理 ---
@@ -55,7 +55,7 @@ const OrderList: React.FC<OrderListProps> = ({ orders, onRemoveOrder, onUpdateOr
     onUpdateOrder(order.id, { 
       status: newStatus, 
       purchasedQuantity: newPurchasedQty,
-      calculatedPrice: calculateTwd(order.originalPriceJpy, effectiveQty)
+      calculatedPrice: calculateTwdPrice(order.originalPriceJpy, effectiveQty)
     });
   };
 
@@ -67,7 +67,7 @@ const OrderList: React.FC<OrderListProps> = ({ orders, onRemoveOrder, onUpdateOr
     onUpdateOrder(order.id, { 
       purchasedQuantity: newQty,
       status: newStatus,
-      calculatedPrice: calculateTwd(order.originalPriceJpy, effectiveQtyForPrice)
+      calculatedPrice: calculateTwdPrice(order.originalPriceJpy, effectiveQtyForPrice)
     });
   };
 
@@ -79,7 +79,7 @@ const OrderList: React.FC<OrderListProps> = ({ orders, onRemoveOrder, onUpdateOr
             const qty = getEffectiveQty(order);
             onUpdateOrder(order.id, { 
                 originalPriceJpy: p,
-                calculatedPrice: calculateTwd(p, qty)
+                calculatedPrice: calculateTwdPrice(p, qty)
             });
         }
     }
@@ -114,7 +114,17 @@ const OrderList: React.FC<OrderListProps> = ({ orders, onRemoveOrder, onUpdateOr
        <div className="flex overflow-x-auto snap-x snap-mandatory gap-4 pb-8 -mx-5 px-5 scroll-smooth hide-scrollbar items-start">
           {buyerNames.map((buyerName) => {
             const items = groupedOrders[buyerName];
-            const buyerTotalTwd = items.reduce((sum, i) => sum + i.calculatedPrice, 0);
+            
+            // 計算買家總額與利潤
+            let buyerTotalTwd = 0;
+            let buyerTotalProfit = 0;
+
+            items.forEach(order => {
+                const effectiveQty = getEffectiveQty(order);
+                const costTwd = Math.ceil(order.originalPriceJpy * effectiveQty * COST_EXCHANGE_RATE);
+                buyerTotalTwd += order.calculatedPrice;
+                buyerTotalProfit += (order.calculatedPrice - costTwd);
+            });
 
             return (
               <div key={buyerName} className="snap-center shrink-0 w-[92vw] sm:w-[28rem] flex flex-col gap-4 animate-slide-in">
@@ -131,9 +141,12 @@ const OrderList: React.FC<OrderListProps> = ({ orders, onRemoveOrder, onUpdateOr
                                 </div>
                                 <div>
                                     <h2 className="text-xl font-black text-slate-900 tracking-tight leading-none">{buyerName}</h2>
-                                    <div className="flex items-center gap-2 mt-2">
+                                    <div className="flex flex-wrap items-center gap-2 mt-2">
                                         <span className="text-[10px] font-black text-indigo-600 uppercase tracking-widest bg-indigo-50 px-2.5 py-1 rounded-lg border border-indigo-100/50">
                                             Total: NT$ {buyerTotalTwd.toLocaleString()}
+                                        </span>
+                                        <span className="text-[10px] font-black text-amber-600 uppercase tracking-widest bg-amber-50 px-2.5 py-1 rounded-lg border border-amber-100/50">
+                                            Earn: NT$ {buyerTotalProfit.toLocaleString()}
                                         </span>
                                     </div>
                                 </div>

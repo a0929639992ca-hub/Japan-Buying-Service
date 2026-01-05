@@ -1,5 +1,15 @@
-// 預設匯率設定 - 不會在 UI 上直接顯示
-export const HIDDEN_EXCHANGE_RATE = 0.25;
+// 基礎匯率設定
+// 規則: 總金額 >= 5500 JPY 匯率 0.23, 未滿 0.24
+export const calculateTwd = (jpyAmount: number): number => {
+  const rate = jpyAmount >= 5500 ? 0.23 : 0.24;
+  return Math.ceil(jpyAmount * rate);
+};
+
+// 成本匯率 (計算淨賺用)
+export const COST_EXCHANGE_RATE = 0.205;
+
+// 保留此常數僅作為參考或 fallback，實際計算應使用 calculateTwd
+export const HIDDEN_EXCHANGE_RATE = 0.24;
 
 export const APP_NAME = "Rento 代購團";
 

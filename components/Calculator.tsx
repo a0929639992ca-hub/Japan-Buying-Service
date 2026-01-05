@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { HIDDEN_EXCHANGE_RATE } from '../constants.ts';
+import { calculateTwd } from '../constants.ts';
 import { Calculator as CalcIcon, RefreshCw, X } from 'lucide-react';
 
 interface CalculatorProps {
@@ -10,13 +10,16 @@ interface CalculatorProps {
 const Calculator: React.FC<CalculatorProps> = ({ onClose, isOpen }) => {
   const [jpyAmount, setJpyAmount] = useState<string>('');
   const [twdResult, setTwdResult] = useState<number | null>(null);
+  const [currentRate, setCurrentRate] = useState<number>(0.24);
 
   useEffect(() => {
     const val = parseFloat(jpyAmount);
     if (!isNaN(val) && val >= 0) {
-      setTwdResult(Math.ceil(val * HIDDEN_EXCHANGE_RATE));
+      setTwdResult(calculateTwd(val));
+      setCurrentRate(val >= 5500 ? 0.23 : 0.24);
     } else {
       setTwdResult(null);
+      setCurrentRate(0.24);
     }
   }, [jpyAmount]);
 
@@ -54,14 +57,18 @@ const Calculator: React.FC<CalculatorProps> = ({ onClose, isOpen }) => {
             </div>
           </div>
 
-          <div className="bg-gradient-to-r from-primary/5 to-secondary/5 rounded-xl p-5 border border-primary/10 flex flex-col items-center justify-center gap-1">
+          <div className="bg-gradient-to-r from-primary/5 to-secondary/5 rounded-xl p-5 border border-primary/10 flex flex-col items-center justify-center gap-1 relative overflow-hidden">
+            <div className="absolute top-2 right-2 text-[10px] font-black bg-white/80 px-2 py-0.5 rounded-full text-primary border border-primary/10 shadow-sm">
+                匯率 {currentRate}
+            </div>
             <span className="text-sm text-gray-500">預估代購台幣價格</span>
             <div className="text-4xl font-bold text-gray-800 tracking-tight flex items-baseline gap-1">
               <span className="text-lg text-gray-400 font-medium">NT$</span>
               {twdResult !== null ? twdResult.toLocaleString() : '0'}
             </div>
-            <p className="text-xs text-gray-400 mt-2 text-center">
-              此價格已包含基礎匯率轉換<br/>運費與其他手續費另計
+            <p className="text-xs text-gray-400 mt-2 text-center leading-relaxed">
+              滿 ¥5,500 匯率 0.23 / 未滿則 0.24<br/>
+              <span className="opacity-50">運費與其他手續費另計</span>
             </p>
           </div>
 

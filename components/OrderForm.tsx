@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
-import { Plus, AlertCircle, Loader2, Contact, Image as ImageIcon, X, Sparkles, ShoppingBag } from 'lucide-react';
-import { HIDDEN_EXCHANGE_RATE } from '../constants.ts';
+import { Plus, AlertCircle, Loader2, Contact, Image as ImageIcon, X, Sparkles, ShoppingBag, Wand2 } from 'lucide-react';
+import { calculateTwd } from '../constants.ts';
 import { OrderItem, OrderStatus } from '../types.ts';
 import { analyzeProduct } from '../services/geminiService.ts';
 
@@ -57,11 +57,11 @@ const OrderForm: React.FC<OrderFormProps> = ({ onAddOrder }) => {
   const [qty, setQty] = useState('1');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isCompressing, setIsCompressing] = useState(false);
-  const [analysisResult, setAnalysisResult] = useState('');
+  const [aiWarning, setAiWarning] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const estimatedTotal = price 
-    ? Math.ceil(parseFloat(price) * parseFloat(qty) * HIDDEN_EXCHANGE_RATE) 
+    ? calculateTwd(parseFloat(price) * parseFloat(qty))
     : 0;
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -94,7 +94,7 @@ const OrderForm: React.FC<OrderFormProps> = ({ onAddOrder }) => {
       calculatedPrice: estimatedTotal,
       status: OrderStatus.PENDING,
       isPaid: false,
-      notes: analysisResult,
+      notes: aiWarning,
       createdAt: Date.now(),
     });
 
@@ -102,17 +102,33 @@ const OrderForm: React.FC<OrderFormProps> = ({ onAddOrder }) => {
     setName('');
     setPrice('');
     setQty('1');
-    setAnalysisResult('');
+    setAiWarning('');
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
   const handleSmartAnalyze = async () => {
     if (!name && !imageUrl) return;
     setIsAnalyzing(true);
+    setAiWarning('');
     try {
         const result = await analyzeProduct(name, imageUrl);
-        setAnalysisResult(result);
-    } catch (e) { console.error(e); } finally { setIsAnalyzing(false); }
+        if (result) {
+            // 自動填入邏輯
+            if (result.suggestedName) setName(result.suggestedName);
+            // 只有當價格未填寫，或原本價格為 0 時才覆蓋
+            if (result.estimatedPriceJpy > 0 && (!price || price === '0')) {
+                setPrice(result.estimatedPriceJpy.toString());
+            }
+            if (result.warnings) {
+                setAiWarning(`⚠️ 注意：${result.warnings}`);
+            }
+        }
+    } catch (e) { 
+        console.error(e); 
+        alert("分析失敗，請檢查網路連線");
+    } finally { 
+        setIsAnalyzing(false); 
+    }
   }
 
   return (
@@ -139,21 +155,25 @@ const OrderForm: React.FC<OrderFormProps> = ({ onAddOrder }) => {
           </div>
 
           <div className="space-y-1.5">
-            <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-1">商品資訊</label>
+            <div className="flex justify-between items-center ml-1">
+                <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest">商品資訊</label>
+                <button
+                  type="button" onClick={handleSmartAnalyze}
+                  disabled={(!name && !imageUrl) || isAnalyzing}
+                  className="flex items-center gap-1 text-[9px] font-bold text-indigo-600 hover:text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-full transition-all disabled:opacity-50"
+                >
+                  {isAnalyzing ? <Loader2 size={10} className="animate-spin" /> : <Wand2 size={10} />}
+                  {isAnalyzing ? "AI 分析中..." : "AI 自動填寫"}
+                </button>
+            </div>
+            
             <div className="flex gap-2">
               <input
                 type="text" required value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="商品完整名稱"
+                placeholder="輸入關鍵字 (如: 吹風機) 後點 AI 按鈕"
                 className="flex-1 px-4 py-3 bg-gray-50 border border-transparent rounded-xl focus:bg-white focus:ring-2 focus:ring-primary/10 focus:border-primary outline-none transition-all text-xs font-medium"
               />
-              <button
-                  type="button" onClick={handleSmartAnalyze}
-                  disabled={(!name && !imageUrl) || isAnalyzing}
-                  className="px-4 py-3 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 rounded-xl transition-all disabled:opacity-50"
-              >
-                  {isAnalyzing ? <Loader2 size={16} className="animate-spin" /> : <Sparkles size={16} />}
-              </button>
             </div>
           </div>
 
@@ -165,6 +185,7 @@ const OrderForm: React.FC<OrderFormProps> = ({ onAddOrder }) => {
                 <input
                   type="number" required min="1" value={price}
                   onChange={(e) => setPrice(e.target.value)}
+                  placeholder="AI 可估價"
                   className="w-full pl-8 pr-4 py-3 bg-gray-50 border border-transparent rounded-xl focus:bg-white focus:ring-2 focus:ring-primary/10 focus:border-primary outline-none transition-all text-xs font-bold"
                 />
               </div>
@@ -202,13 +223,10 @@ const OrderForm: React.FC<OrderFormProps> = ({ onAddOrder }) => {
         </div>
       </div>
 
-      {analysisResult && (
-           <div className="bg-indigo-50/50 p-4 rounded-xl border border-indigo-100 text-xs text-indigo-900 animate-slide-in">
-              <div className="font-black text-[9px] uppercase tracking-widest mb-1.5 flex items-center gap-1.5">
-                  <AlertCircle size={12} className="text-indigo-500"/>
-                  AI 分析建議
-              </div>
-              <p className="whitespace-pre-line leading-relaxed opacity-80 line-clamp-3">{analysisResult}</p>
+      {aiWarning && (
+           <div className="bg-amber-50/50 p-3 rounded-xl border border-amber-100 text-xs text-amber-800 animate-slide-in flex gap-2 items-start">
+              <AlertCircle size={14} className="text-amber-500 shrink-0 mt-0.5"/>
+              <p className="leading-relaxed opacity-90">{aiWarning}</p>
            </div>
       )}
 

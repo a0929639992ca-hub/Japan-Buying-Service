@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
-import { OrderItem } from './types.ts';
+import { OrderItem, OrderStatus } from './types.ts';
 import Calculator from './components/Calculator.tsx';
 import OrderForm from './components/OrderForm.tsx';
 import OrderList from './components/OrderList.tsx';
@@ -7,7 +7,8 @@ import AIAssistant from './components/AIAssistant.tsx';
 import BuyerForm from './components/BuyerForm.tsx';
 import { parseOrderFromText } from './services/geminiService.ts';
 import { initCloud, subscribeToInbox, encodeConfig, FirebaseConfig } from './services/cloudService.ts';
-import { Search, Calculator as CalcIcon, Share2, Plus, ChevronUp, ChevronDown, ClipboardPaste, Zap, Loader2, Banknote, Bell, Inbox, X, Check, Cloud, Sun, Lock } from 'lucide-react';
+import { COST_EXCHANGE_RATE } from './constants.ts';
+import { Search, Calculator as CalcIcon, Share2, Plus, ChevronUp, ChevronDown, ClipboardPaste, Zap, Loader2, Banknote, Bell, Inbox, X, Check, Cloud, Sun, Lock, TrendingUp } from 'lucide-react';
 
 // 硬寫入的 Firebase 設定
 const FIREBASE_CONFIG: FirebaseConfig = {
@@ -229,11 +230,25 @@ const App: React.FC = () => {
         lastClipboardText.current = text;
         const data = parseImportData(match[1]);
         if (data) {
+           const incomingItems = Array.isArray(data) ? data : [data];
+           let addedCount = 0;
+
            setInboxItems(prev => {
-              if (prev.some(item => item.id === data.id) || orders.some(o => o.id === data.id)) return prev;
-              return [data, ...prev];
+              const uniqueItems = incomingItems.filter((newItem: OrderItem) => 
+                 !prev.some(p => p.id === newItem.id) && !orders.some(o => o.id === newItem.id)
+              );
+              
+              if (uniqueItems.length > 0) {
+                  addedCount = uniqueItems.length;
+                  return [...uniqueItems, ...prev];
+              }
+              return prev;
            });
-           setIsInboxOpen(true);
+
+           if (addedCount > 0) {
+               try { new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3').play().catch(()=>{}); } catch(e){}
+               setIsInboxOpen(true);
+           }
         }
       }
     } catch (e) {}
@@ -280,11 +295,30 @@ const App: React.FC = () => {
     if (inboxItems.length <= 1) setIsInboxOpen(false);
   };
 
-  const stats = useMemo(() => ({
-    jpy: orders.reduce((s, o) => s + (o.originalPriceJpy * o.requestedQuantity), 0),
-    twd: orders.reduce((s, o) => s + o.calculatedPrice, 0),
-    paid: orders.filter(o => o.isPaid).reduce((s, o) => s + o.calculatedPrice, 0)
-  }), [orders]);
+  const stats = useMemo(() => {
+    let totalJpy = 0;
+    let totalTwd = 0;
+    let totalPaid = 0;
+    let totalProfit = 0;
+
+    orders.forEach(order => {
+        // 1. 預算 (JPY): 使用請求數量
+        totalJpy += (order.originalPriceJpy * order.requestedQuantity);
+        
+        // 2. 應收 (TWD) & 實收 (Paid)
+        totalTwd += order.calculatedPrice;
+        if (order.isPaid) totalPaid += order.calculatedPrice;
+
+        // 3. 淨賺 (Profit): 應收 - (日幣價格 * 有效數量 * 成本匯率)
+        // 有效數量: 若是 Pending 則用請求數量(預估)，若是已採購則用實際採購數量
+        const effectiveQty = order.status === OrderStatus.PENDING ? order.requestedQuantity : order.purchasedQuantity;
+        const costTwd = Math.ceil(order.originalPriceJpy * effectiveQty * COST_EXCHANGE_RATE);
+        const profit = order.calculatedPrice - costTwd;
+        totalProfit += profit;
+    });
+
+    return { jpy: totalJpy, twd: totalTwd, paid: totalPaid, profit: totalProfit };
+  }, [orders]);
 
   const filteredOrders = useMemo(() => {
     const query = searchQuery.toLowerCase().trim();
@@ -405,7 +439,7 @@ const App: React.FC = () => {
       </header>
 
       <main className="max-w-5xl mx-auto px-5 py-8 space-y-8">
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <div className="bg-white p-6 rounded-[2rem] border border-slate-200 shadow-sm">
             <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 flex items-center gap-1.5">
                 <Banknote size={12} strokeWidth={3} /> 採購預算
@@ -419,6 +453,12 @@ const App: React.FC = () => {
           <div className="bg-emerald-500 p-6 rounded-[2rem] border border-emerald-400 shadow-xl shadow-emerald-500/10">
             <p className="text-[10px] font-black text-emerald-100 uppercase tracking-widest mb-2">實收進帳</p>
             <p className="text-2xl font-black text-white">NT$ {stats.paid.toLocaleString()}</p>
+          </div>
+          <div className="bg-amber-400 p-6 rounded-[2rem] border border-amber-300 shadow-xl shadow-amber-400/20">
+            <p className="text-[10px] font-black text-amber-900/60 uppercase tracking-widest mb-2 flex items-center gap-1.5">
+                <TrendingUp size={12} strokeWidth={3} /> 預估淨賺
+            </p>
+            <p className="text-2xl font-black text-amber-900">NT$ {stats.profit.toLocaleString()}</p>
           </div>
         </div>
 
