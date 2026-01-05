@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { Plus, ShoppingBag, AlertCircle, Loader2, User, Image as ImageIcon, X, Sparkles } from 'lucide-react';
+import { Plus, Store, AlertCircle, Loader2, Contact, Image as ImageIcon, X, Sparkles } from 'lucide-react';
 import { HIDDEN_EXCHANGE_RATE } from '../constants.ts';
 import { OrderItem, OrderStatus } from '../types.ts';
 import { analyzeProduct } from '../services/geminiService.ts';
@@ -72,7 +72,7 @@ const OrderForm: React.FC<OrderFormProps> = ({ onAddOrder }) => {
       <div className="p-8 border-b border-gray-50 flex justify-between items-center">
         <div>
           <h2 className="text-xl font-black text-gray-900 flex items-center gap-2">
-            <ShoppingBag className="text-primary" size={24} strokeWidth={2.5} />
+            <Store className="text-primary" size={24} strokeWidth={2.5} />
             快速委託
           </h2>
           <p className="text-xs text-gray-400 mt-1 font-bold tracking-tight uppercase">New Purchase Order</p>
@@ -85,7 +85,7 @@ const OrderForm: React.FC<OrderFormProps> = ({ onAddOrder }) => {
             <div className="space-y-2">
               <label className="text-xs font-black text-gray-400 uppercase tracking-widest ml-1">Buyer Name</label>
               <div className="relative group">
-                <User className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-primary transition-colors" size={18} />
+                <Contact className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-primary transition-colors" size={18} />
                 <input
                   type="text" required value={buyerName}
                   onChange={(e) => setBuyerName(e.target.value)}

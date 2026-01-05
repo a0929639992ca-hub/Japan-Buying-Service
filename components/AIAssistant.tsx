@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { MessageCircle, Send, X, Bot, Loader2, Sparkles } from 'lucide-react';
+import { Sparkles, Send, X, Wand2, Loader2 } from 'lucide-react';
 import { ChatMessage } from '../types.ts';
 import { generateAssistantResponse } from '../services/geminiService.ts';
 
@@ -65,7 +65,7 @@ const AIAssistant: React.FC = () => {
           isOpen ? 'scale-0 opacity-0' : 'scale-100 opacity-100 bg-gradient-to-tr from-primary to-secondary text-white'
         }`}
       >
-        <MessageCircle size={28} />
+        <Sparkles size={28} />
       </button>
 
       <div
@@ -78,7 +78,7 @@ const AIAssistant: React.FC = () => {
         <div className="bg-gradient-to-r from-primary to-primary/80 p-4 flex justify-between items-center text-white shrink-0">
           <div className="flex items-center gap-2">
             <div className="bg-white/20 p-1.5 rounded-lg">
-                <Bot size={20} className="text-white" />
+                <Wand2 size={20} className="text-white" />
             </div>
             <div>
                 <h3 className="font-bold text-sm">Sakura AI 助理</h3>

@@ -2,9 +2,9 @@ import React from 'react';
 import { OrderItem, OrderStatus } from '../types.ts';
 import { STATUS_LABELS, STATUS_COLORS } from '../constants.ts';
 import { 
-  Package, Clock, Trash2, User, ImageIcon, CheckCircle, 
-  CreditCard, ShoppingCart, Minus, Plus, AlertCircle, 
-  Share2, Check 
+  ShoppingBasket, Clock, Trash2, Contact, ImageIcon, 
+  CreditCard, ShoppingCart, Minus, Plus, 
+  Share2, Check, Truck 
 } from 'lucide-react';
 
 interface OrderListProps {
@@ -18,7 +18,7 @@ const OrderList: React.FC<OrderListProps> = ({ orders, onRemoveOrder, onUpdateOr
     return (
       <div className="text-center py-24 bg-white rounded-[2rem] border border-dashed border-gray-200">
         <div className="w-20 h-20 bg-gray-50 rounded-3xl flex items-center justify-center mx-auto mb-6">
-          <Package className="text-gray-200" size={40} />
+          <ShoppingBasket className="text-gray-200" size={40} />
         </div>
         <h3 className="text-lg font-bold text-gray-800">暫無代購清單</h3>
         <p className="text-gray-400 text-sm mt-1">開始新增你的第一筆代購委託吧！</p>
@@ -72,7 +72,7 @@ const OrderList: React.FC<OrderListProps> = ({ orders, onRemoveOrder, onUpdateOr
             <div className="bg-white p-6 rounded-[2rem] shadow-sm border border-gray-100 flex flex-col md:flex-row md:items-center justify-between gap-6">
               <div className="flex items-center gap-4">
                 <div className="w-14 h-14 bg-indigo-50 rounded-2xl flex items-center justify-center text-indigo-600">
-                  <User size={28} />
+                  <Contact size={28} />
                 </div>
                 <div>
                   <h2 className="text-xl font-black text-gray-900">{buyerName}</h2>
@@ -153,7 +153,9 @@ const OrderList: React.FC<OrderListProps> = ({ orders, onRemoveOrder, onUpdateOr
                       />
                     </div>
                     <div className="flex justify-between mt-2 mb-4">
-                      <span className="text-[10px] font-bold text-gray-400 tracking-wider">採購進度</span>
+                      <span className="text-[10px] font-bold text-gray-400 tracking-wider flex items-center gap-1">
+                        <Truck size={10} /> 採購進度
+                      </span>
                       <div className="flex items-center gap-3">
                         <span className="text-xs font-black text-gray-700">{order.purchasedQuantity} / {order.requestedQuantity}</span>
                         <div className="flex bg-gray-50 rounded-lg p-0.5 border border-gray-100">

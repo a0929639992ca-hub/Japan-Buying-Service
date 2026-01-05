@@ -4,7 +4,7 @@ import Calculator from './components/Calculator.tsx';
 import OrderForm from './components/OrderForm.tsx';
 import OrderList from './components/OrderList.tsx';
 import AIAssistant from './components/AIAssistant.tsx';
-import { Calculator as CalcIcon, Plane, Search, BarChart3, TrendingUp } from 'lucide-react';
+import { JapaneseYen, Globe, Search, Banknote, Coins, Calculator as CalcIcon } from 'lucide-react';
 
 const App: React.FC = () => {
   const [orders, setOrders] = useState<OrderItem[]>(() => {
@@ -52,13 +52,13 @@ const App: React.FC = () => {
         <div className="max-w-4xl mx-auto px-6 py-4 flex justify-between items-center">
           <div className="flex items-center gap-3">
             <div className="bg-primary p-2 rounded-2xl text-white shadow-lg shadow-primary/20">
-              <Plane size={22} strokeWidth={2.5} />
+              <Globe size={22} strokeWidth={2.5} />
             </div>
             <div>
               <h1 className="text-xl font-extrabold tracking-tight text-gray-900">
                 SakuraProxy
               </h1>
-              <p className="text-[10px] text-gray-400 font-bold tracking-widest uppercase">Management System</p>
+              <p className="text-[10px] text-gray-400 font-bold tracking-widest uppercase">Japan Concierge</p>
             </div>
           </div>
           
@@ -77,7 +77,7 @@ const App: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm flex items-center gap-4">
             <div className="w-12 h-12 bg-rose-50 rounded-2xl flex items-center justify-center text-rose-500">
-              <TrendingUp size={24} />
+              <JapaneseYen size={24} />
             </div>
             <div>
               <p className="text-xs font-bold text-gray-400 uppercase tracking-tight">總日幣支出</p>
@@ -86,7 +86,7 @@ const App: React.FC = () => {
           </div>
           <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm flex items-center gap-4">
             <div className="w-12 h-12 bg-indigo-50 rounded-2xl flex items-center justify-center text-indigo-500">
-              <BarChart3 size={24} />
+              <Banknote size={24} />
             </div>
             <div>
               <p className="text-xs font-bold text-gray-400 uppercase tracking-tight">預估總營收</p>
@@ -95,7 +95,7 @@ const App: React.FC = () => {
           </div>
           <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm flex items-center gap-4">
             <div className="w-12 h-12 bg-green-50 rounded-2xl flex items-center justify-center text-green-500">
-              <CalcIcon size={24} />
+              <Coins size={24} />
             </div>
             <div>
               <p className="text-xs font-bold text-gray-400 uppercase tracking-tight">已入帳台幣</p>
