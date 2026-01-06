@@ -47,42 +47,42 @@ const compressImage = (file: File): Promise<string> => {
 const CATEGORIES = [
   { 
     name: 'UNIQLO', 
-    logo: 'https://commons.wikimedia.org/w/index.php?title=Special:Redirect/file/UNIQLO_logo.svg&width=300', 
+    logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/9/92/UNIQLO_logo.svg/200px-UNIQLO_logo.svg.png', 
     type: 'uniqlo' 
   },
   { 
     name: 'GU', 
-    logo: 'https://commons.wikimedia.org/w/index.php?title=Special:Redirect/file/GU_logo.svg&width=300', 
+    logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/c/cc/GU_logo.svg/200px-GU_logo.svg.png', 
     type: 'uniqlo' 
   },
   { 
     name: 'MUJI', 
-    logo: 'https://commons.wikimedia.org/w/index.php?title=Special:Redirect/file/Muji_logo.svg&width=300', 
+    logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/c/ce/Muji_logo.svg/200px-Muji_logo.svg.png', 
     type: 'shipping_alert' 
   },
   { 
     name: 'Donki唐吉訶德', 
-    logo: 'https://commons.wikimedia.org/w/index.php?title=Special:Redirect/file/Don_Quijote_(store)_logo.svg&width=300', 
+    logo: 'https://www.donki.com/img/common/header_logo.png', 
     type: 'law_alert' 
   },
   { 
     name: '3Coins', 
-    logo: 'https://cdn-icons-png.flaticon.com/512/8061/8061483.png', 
+    logo: 'https://www.3coins.jp/img/common/logo.png', 
     type: 'shipping_alert' 
   },
   { 
     name: 'Bic Camera', 
-    logo: 'https://commons.wikimedia.org/w/index.php?title=Special:Redirect/file/Bic_Camera_logo.svg&width=300', 
+    logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/e/e5/Bic_Camera_logo.svg/512px-Bic_Camera_logo.svg.png', 
     type: 'shipping_alert' 
   },
   { 
     name: '藥妝', 
-    logo: 'https://commons.wikimedia.org/w/index.php?title=Special:Redirect/file/Matsumotokiyoshi_logo.svg&width=300', 
+    logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/e/ef/Matsumotokiyoshi_logo.svg/512px-Matsumotokiyoshi_logo.svg.png', 
     type: 'law_alert' 
   },
   { 
     name: '伴手禮', 
-    logo: 'https://cdn-icons-png.flaticon.com/512/3013/3013444.png', 
+    logo: 'https://cdn-icons-png.flaticon.com/512/11542/11542646.png', // Premium gift box
     type: 'normal' 
   },
 ];
@@ -346,20 +346,20 @@ const BuyerForm: React.FC = () => {
                   <button 
                     key={cat.name} 
                     onClick={() => handleCategorySelect(cat)}
-                    className={`group flex flex-col items-center justify-center p-3 rounded-2xl border transition-all active:scale-95 h-28 ${shopInfo === cat.name ? 'bg-indigo-50 border-indigo-600 shadow-md ring-2 ring-indigo-600/10' : 'bg-white border-slate-100'}`}
+                    className={`group flex flex-col items-center justify-center p-2 rounded-2xl border transition-all active:scale-95 h-28 ${shopInfo === cat.name ? 'bg-indigo-50 border-indigo-600 shadow-md ring-2 ring-indigo-600/10' : 'bg-white border-slate-100'}`}
                   >
-                      <div className="w-12 h-12 mb-3 flex items-center justify-center overflow-hidden bg-white p-1 rounded-xl shadow-sm border border-slate-50 group-active:scale-90 transition-transform">
+                      <div className={`w-14 h-14 mb-2 flex items-center justify-center overflow-hidden rounded-xl shadow-sm border border-slate-50 transition-transform ${cat.name === '3Coins' ? 'bg-[#989d00]' : 'bg-white'} group-active:scale-90 p-1`}>
                         <img 
                           src={cat.logo} 
                           alt={cat.name} 
-                          className="max-w-full max-h-full object-contain"
+                          className={`max-w-full max-h-full object-contain ${cat.name === '3Coins' ? 'brightness-0 invert' : ''}`}
                           onError={(e) => {
                             (e.target as HTMLImageElement).onerror = null;
                             (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${cat.name}&background=f1f5f9&color=6366f1&bold=true`;
                           }}
                         />
                       </div>
-                      <span className={`text-[10px] font-black text-center leading-tight tracking-tighter ${shopInfo === cat.name ? 'text-indigo-600' : 'text-slate-500'}`}>{cat.name}</span>
+                      <span className={`text-[9px] font-black text-center leading-tight tracking-tighter ${shopInfo === cat.name ? 'text-indigo-600' : 'text-slate-500'}`}>{cat.name}</span>
                   </button>
               ))}
           </div>
@@ -424,7 +424,7 @@ const BuyerForm: React.FC = () => {
               {showShippingAlert && (
                   <div className="bg-blue-50 border border-blue-200 rounded-2xl p-4 flex gap-3 animate-slide-in">
                       <Info className="text-blue-500 shrink-0" size={18} />
-                      <p className="text-[11px] font-bold text-blue-800 leading-relaxed">
+                      <p className="text-[11px] font-bold text-amber-800 leading-relaxed">
                           大型商品家電或佔重佔空間商品以及液體商品價格另計。
                       </p>
                   </div>
@@ -452,7 +452,7 @@ const BuyerForm: React.FC = () => {
                           <div className="space-y-1">
                               <label className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest ml-1">尺寸</label>
                               <input 
-                                type="text" value={itemSize} onChange={itemSize => setItemSize(itemSize.target.value)} 
+                                type="text" value={itemSize} onChange={e => setItemSize(e.target.value)} 
                                 placeholder="如: M, XL, 24"
                                 className="w-full px-4 py-3 bg-white rounded-xl outline-none font-bold text-sm text-slate-800 border border-indigo-100 focus:border-indigo-400"
                               />
