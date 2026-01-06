@@ -44,7 +44,7 @@ const compressImage = (file: File): Promise<string> => {
   });
 };
 
-// 品牌資料與穩定的 Logo 來源 (優先使用帶 www 的網域以利解析)
+// 品牌資料與穩定的 Logo 來源
 const CATEGORIES = [
   { 
     name: 'UNIQLO', 
@@ -54,7 +54,7 @@ const CATEGORIES = [
   },
   { 
     name: 'GU', 
-    logo: 'https://www.google.com/s2/favicons?sz=128&domain=www.gu-japan.com', 
+    logo: 'https://www.google.com/s2/favicons?sz=128&domain=www.gu-global.com', 
     fallbackColor: '#0026a3',
     initial: 'G'
   },
@@ -125,6 +125,7 @@ const BuyerForm: React.FC = () => {
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const formRef = useRef<HTMLDivElement>(null);
+  const buyerNameSectionRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -146,11 +147,10 @@ const BuyerForm: React.FC = () => {
   const handleCategorySelect = (cat: typeof CATEGORIES[0]) => {
     setShopInfo(cat.name);
     
-    // 解決捲動過頭或不足的問題
+    // 改為跳轉至「聯絡資料」區塊，讓買家先確認身份
     setTimeout(() => {
-      const element = formRef.current;
+      const element = buyerNameSectionRef.current;
       if (element) {
-        // 考慮到上方 Sticky Header (約 80px) 的高度
         const headerOffset = 85; 
         const elementPosition = element.getBoundingClientRect().top;
         const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
@@ -160,8 +160,8 @@ const BuyerForm: React.FC = () => {
           behavior: 'smooth'
         });
         
-        // 自動聚焦商品名稱，提升填寫效率
-        const input = document.getElementById('product-name-input');
+        // 聚焦至「您的暱稱」輸入框
+        const input = document.getElementById('buyer-name-input');
         if (input) input.focus();
       }
     }, 100);
@@ -413,15 +413,16 @@ const BuyerForm: React.FC = () => {
           </div>
         </div>
         
-        <div className="bg-white rounded-[2rem] p-7 shadow-sm border border-slate-200">
+        <div ref={buyerNameSectionRef} className="bg-white rounded-[2rem] p-7 shadow-sm border border-slate-200 transition-all duration-300 focus-within:ring-2 focus-within:ring-indigo-100">
             <label className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4 block">您的聯絡資料</label>
             <div className="relative">
               <User className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" size={18} />
               <input
+                id="buyer-name-input"
                 type="text" value={buyerName}
                 onChange={(e) => setBuyerName(e.target.value)}
                 placeholder="請輸入您的暱稱 (方便團長對帳)"
-                className="w-full pl-12 pr-4 py-4 bg-slate-50 rounded-2xl outline-none font-semibold text-sm text-slate-800"
+                className="w-full pl-12 pr-4 py-4 bg-slate-50 rounded-2xl outline-none font-semibold text-sm text-slate-800 focus:bg-white transition-colors"
               />
             </div>
         </div>
@@ -445,7 +446,7 @@ const BuyerForm: React.FC = () => {
                       onChange={(e) => setProductName(e.target.value)}
                       placeholder="請輸入商品名稱"
                       rows={2}
-                      className="w-full pl-12 pr-4 py-4 bg-slate-50 rounded-2xl outline-none font-semibold text-sm text-slate-800 resize-none leading-relaxed focus:ring-2 focus:ring-indigo-100 transition-all"
+                      className="w-full pl-12 pr-4 py-4 bg-slate-50 rounded-2xl outline-none font-semibold text-sm text-slate-800 resize-none leading-relaxed focus:ring-2 focus:ring-indigo-100 transition-all focus:bg-white"
                   />
               </div>
 
@@ -456,7 +457,7 @@ const BuyerForm: React.FC = () => {
                       value={shopInfo}
                       onChange={(e) => setShopInfo(e.target.value)}
                       placeholder="購買地點 (選填)"
-                      className="w-full pl-12 pr-4 py-4 bg-slate-50 rounded-2xl outline-none font-semibold text-sm text-slate-800"
+                      className="w-full pl-12 pr-4 py-4 bg-slate-50 rounded-2xl outline-none font-semibold text-sm text-slate-800 focus:bg-white"
                   />
               </div>
 
@@ -552,7 +553,7 @@ const BuyerForm: React.FC = () => {
 
               <div className="relative">
                   <MessageSquareText className="absolute left-4 top-4 text-slate-300" size={18} />
-                  <textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="額外備註 (選填)..." rows={2} className="w-full pl-12 pr-4 py-4 bg-slate-50 rounded-2xl outline-none font-medium text-sm text-slate-700 resize-none" />
+                  <textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="額外備註 (選填)..." rows={2} className="w-full pl-12 pr-4 py-4 bg-slate-50 rounded-2xl outline-none font-medium text-sm text-slate-700 resize-none focus:bg-white" />
               </div>
 
               <button onClick={addToCart} className="w-full py-4 rounded-2xl font-bold text-sm border-2 border-indigo-600 text-indigo-600 hover:bg-indigo-50 flex items-center justify-center gap-2 transition-all active:scale-95">
