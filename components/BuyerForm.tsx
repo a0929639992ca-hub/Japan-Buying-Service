@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { Send, ShoppingBag, User, Image as ImageIcon, CheckCircle2, MessageSquareText, Copy, Plus, Loader2, Info, CloudLightning, X, Trash2, Layers, Star, Store, Ban, ChevronRight, Lock, MapPin, AlertCircle } from 'lucide-react';
 import { OrderStatus, OrderItem } from '../types.ts';
@@ -45,14 +46,46 @@ const compressImage = (file: File): Promise<string> => {
 };
 
 const CATEGORIES = [
-  { name: 'UNIQLO', icon: '👕', type: 'uniqlo' },
-  { name: 'GU', icon: '✨', type: 'uniqlo' },
-  { name: 'MUJI', icon: '🌿', type: 'shipping_alert' },
-  { name: 'Donki唐吉訶德', icon: '🐧', type: 'law_alert' },
-  { name: '3Coins', icon: '🪙', type: 'shipping_alert' },
-  { name: 'Bic Camera', icon: '📷', type: 'shipping_alert' },
-  { name: '藥妝', icon: '💊', type: 'law_alert' },
-  { name: '零食', icon: '🍪', type: 'normal' },
+  { 
+    name: 'UNIQLO', 
+    logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/9/92/UNIQLO_logo.svg/200px-UNIQLO_logo.svg.png', 
+    type: 'uniqlo' 
+  },
+  { 
+    name: 'GU', 
+    logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/4/4c/GU_Logo.png/200px-GU_Logo.png', 
+    type: 'uniqlo' 
+  },
+  { 
+    name: 'MUJI', 
+    logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/c/ce/Muji_logo.svg/200px-Muji_logo.svg.png', 
+    type: 'shipping_alert' 
+  },
+  { 
+    name: 'Donki唐吉訶德', 
+    logo: 'https://www.donki.com/img/common/header_logo.png', 
+    type: 'law_alert' 
+  },
+  { 
+    name: '3Coins', 
+    logo: 'https://cdn-icons-png.flaticon.com/512/8061/8061483.png', // 3Coins style replacement
+    type: 'shipping_alert' 
+  },
+  { 
+    name: 'Bic Camera', 
+    logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/e/e5/Bic_Camera_logo.svg/2560px-Bic_Camera_logo.svg.png', 
+    type: 'shipping_alert' 
+  },
+  { 
+    name: '藥妝', 
+    logo: 'https://cdn-icons-png.flaticon.com/512/2966/2966327.png', // Drugstore icon
+    type: 'law_alert' 
+  },
+  { 
+    name: '伴手禮', 
+    logo: 'https://cdn-icons-png.flaticon.com/512/3013/3013444.png', // Souvenir/Gift box icon
+    type: 'normal' 
+  },
 ];
 
 const BuyerForm: React.FC = () => {
@@ -72,10 +105,11 @@ const BuyerForm: React.FC = () => {
   const [cart, setCart] = useState<OrderItem[]>([]);
   const [isSending, setIsSending] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  // FIX: Add generatedMessage state to handle manual submission display
+  const [generatedMessage, setGeneratedMessage] = useState('');
   const [isCompressing, setIsCompressing] = useState(false);
   const [submitMode, setSubmitMode] = useState<'cloud' | 'manual'>('manual');
   const [cloudStoreId, setCloudStoreId] = useState<string>('');
-  const [generatedMessage, setGeneratedMessage] = useState('');
   const [formConfig, setFormConfig] = useState<{ isFormActive: boolean; deadline: string }>({
     isFormActive: true,
     deadline: '2026.01.29 23:00'
@@ -209,6 +243,7 @@ const BuyerForm: React.FC = () => {
             const secureData = btoa(unescape(encodeURIComponent(JSON.stringify(finalCart))));
             let itemsText = finalCart.map((item, idx) => `${idx + 1}. ${item.productName} (x${item.requestedQuantity})`).join('\n');
             const message = `🌸 Rento 代購委託單 (${finalCart.length}筆)\n------------------\n👤 買家：${buyerName}\n\n${itemsText}\n------------------\n📋 系統識別碼：\nRENTO_DATA::${secureData}::END\n------------------`;
+            // FIX: Successfully set the generated message for manual mode
             setGeneratedMessage(message);
         }
         setTimeout(() => { setIsSending(false); setSubmitted(true); setCart([]); }, 800);
@@ -225,7 +260,27 @@ const BuyerForm: React.FC = () => {
         <div className="max-w-md w-full space-y-8 animate-slide-in">
           <CheckCircle2 size={56} className="text-indigo-500 mx-auto" />
           <h2 className="text-2xl font-bold text-slate-900">{submitMode === 'cloud' ? '委託單已送達！' : '委託單已生成'}</h2>
-          <button onClick={() => { setSubmitted(false); setProductName(''); setQty(''); }} className="w-full bg-slate-100 py-4 rounded-2xl font-bold text-sm text-slate-600">再填一筆委託</button>
+          
+          {/* FIX: Show the generated message and a copy button in manual mode */}
+          {submitMode === 'manual' && generatedMessage && (
+            <div className="bg-slate-50 p-4 rounded-2xl text-left border border-slate-100">
+              <p className="text-[10px] font-bold text-slate-400 uppercase mb-2">請複製以下文字傳送給團長：</p>
+              <pre className="text-[10px] whitespace-pre-wrap break-all bg-white p-3 rounded-xl border border-slate-200 text-slate-600 font-mono mb-3">
+                {generatedMessage}
+              </pre>
+              <button 
+                onClick={() => {
+                  navigator.clipboard.writeText(generatedMessage);
+                  alert("已複製到剪貼簿！");
+                }}
+                className="w-full py-2 bg-indigo-600 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-2 active:scale-95"
+              >
+                <Copy size={14} /> 點擊複製
+              </button>
+            </div>
+          )}
+
+          <button onClick={() => { setSubmitted(false); setProductName(''); setQty(''); setGeneratedMessage(''); }} className="w-full bg-slate-100 py-4 rounded-2xl font-bold text-sm text-slate-600">再填一筆委託</button>
         </div>
       </div>
     );
@@ -299,9 +354,15 @@ const BuyerForm: React.FC = () => {
                   <button 
                     key={cat.name} 
                     onClick={() => handleCategorySelect(cat)}
-                    className={`flex flex-col items-center justify-center p-3 rounded-2xl border transition-all active:scale-95 ${shopInfo === cat.name ? 'bg-indigo-600 border-indigo-600 text-white shadow-lg shadow-indigo-100' : 'bg-white border-slate-100 text-slate-600'}`}
+                    className={`flex flex-col items-center justify-center p-3 rounded-2xl border transition-all active:scale-95 h-24 ${shopInfo === cat.name ? 'bg-indigo-600 border-indigo-600 text-white shadow-lg shadow-indigo-100' : 'bg-white border-slate-100 text-slate-600'}`}
                   >
-                      <span className="text-xl mb-1">{cat.icon}</span>
+                      <div className="w-10 h-10 mb-2 flex items-center justify-center overflow-hidden">
+                        <img 
+                          src={cat.logo} 
+                          alt={cat.name} 
+                          className={`max-w-full max-h-full object-contain ${shopInfo === cat.name ? 'brightness-0 invert' : ''}`}
+                        />
+                      </div>
                       <span className="text-[10px] font-bold text-center leading-tight">{cat.name}</span>
                   </button>
               ))}

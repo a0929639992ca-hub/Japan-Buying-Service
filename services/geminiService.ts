@@ -1,3 +1,4 @@
+
 import { GoogleGenAI, Type } from "@google/genai";
 import { calculateTwd } from "../constants.ts";
 
@@ -8,7 +9,8 @@ let aiInstance: GoogleGenAI | null = null;
 
 const getAI = (): GoogleGenAI => {
   if (!aiInstance) {
-    aiInstance = new GoogleGenAI({ apiKey: process.env.API_KEY || "" });
+    // FIX: Always use a named parameter when initializing GoogleGenAI
+    aiInstance = new GoogleGenAI({ apiKey: process.env.API_KEY });
   }
   return aiInstance;
 };
@@ -48,7 +50,10 @@ export const parseOrderFromText = async (text: string): Promise<any | null> => {
       }
     });
 
-    const result = JSON.parse(response.text);
+    // FIX: Ensure correct extraction of text from GenerateContentResponse using the .text property
+    const responseText = response.text?.trim();
+    if (!responseText) return null;
+    const result = JSON.parse(responseText);
     
     // 雖然 AI 會計算，但為了保證匯率邏輯 (滿 5500 變 0.23) 絕對準確，我們在這邊強制重新計算一次
     const finalJpy = result.originalPriceJpy || 0;
@@ -88,7 +93,8 @@ export const generateAssistantResponse = async (
         
         回答請簡潔有力，適合手機閱讀。`,
       },
-      history: history.map(h => ({ role: h.role, parts: [{ text: h.text }] })) as any,
+      // Ensure history is correctly mapped for the chat interface
+      history: history.map(h => ({ role: h.role === 'model' ? 'model' : 'user', parts: [{ text: h.text }] })) as any,
     });
 
     let messageContent: any = prompt;
@@ -107,6 +113,7 @@ export const generateAssistantResponse = async (
       ];
     }
 
+    // FIX: chat.sendMessage only accepts the message parameter, property .text is used to extract result
     const result = await chat.sendMessage({ message: messageContent });
     return result.text || "抱歉，我暫時無法回答。";
   } catch (error) {
@@ -156,7 +163,10 @@ export const analyzeProduct = async (name: string, base64Image?: string): Promis
         }
       }
     });
-    return JSON.parse(response.text) as AnalyzedProductData;
+    // FIX: Extract text property from GenerateContentResponse correctly and handle trimming
+    const jsonStr = response.text?.trim();
+    if (!jsonStr) return null;
+    return JSON.parse(jsonStr) as AnalyzedProductData;
   } catch (error) {
     console.error(error);
     return null;
