@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Send, ShoppingBag, User, Image as ImageIcon, CheckCircle2, MessageSquareText, Copy, Plus, Loader2, Info, CloudLightning, Link2, X, Trash2, Layers, Calendar, Star, Store, Ban, ChevronRight, Lock, MapPin } from 'lucide-react';
+import { Send, ShoppingBag, User, Image as ImageIcon, CheckCircle2, MessageSquareText, Copy, Plus, Loader2, Info, CloudLightning, X, Trash2, Layers, Star, Store, Ban, ChevronRight, Lock, MapPin, AlertCircle } from 'lucide-react';
 import { OrderStatus, OrderItem } from '../types.ts';
 import { decodeConfig, initCloud, sendOrderToCloud, subscribeToConfig } from '../services/cloudService.ts';
 
@@ -44,6 +44,17 @@ const compressImage = (file: File): Promise<string> => {
   });
 };
 
+const CATEGORIES = [
+  { name: 'UNIQLO', icon: '👕', type: 'uniqlo' },
+  { name: 'GU', icon: '✨', type: 'uniqlo' },
+  { name: 'MUJI', icon: '🌿', type: 'shipping_alert' },
+  { name: 'Donki唐吉訶德', icon: '🐧', type: 'law_alert' },
+  { name: '3Coins', icon: '🪙', type: 'shipping_alert' },
+  { name: 'Bic Camera', icon: '📷', type: 'shipping_alert' },
+  { name: '藥妝', icon: '💊', type: 'law_alert' },
+  { name: '零食', icon: '🍪', type: 'normal' },
+];
+
 const BuyerForm: React.FC = () => {
   const [buyerName, setBuyerName] = useState('');
   const [productName, setProductName] = useState('');
@@ -51,6 +62,13 @@ const BuyerForm: React.FC = () => {
   const [notes, setNotes] = useState('');
   const [qty, setQty] = useState('');
   const [imageUrl, setImageUrl] = useState('');
+  
+  // UNIQLO/GU 專用欄位
+  const [itemCode, setItemCode] = useState('');
+  const [itemSize, setItemSize] = useState('');
+  const [itemColor, setItemColor] = useState('');
+  const [itemGender, setItemGender] = useState('WOMEN');
+
   const [cart, setCart] = useState<OrderItem[]>([]);
   const [isSending, setIsSending] = useState(false);
   const [submitted, setSubmitted] = useState(false);
@@ -64,6 +82,7 @@ const BuyerForm: React.FC = () => {
   });
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const formRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -81,6 +100,12 @@ const BuyerForm: React.FC = () => {
       }
     }
   }, []);
+
+  const handleCategorySelect = (cat: typeof CATEGORIES[0]) => {
+    setShopInfo(cat.name);
+    // 捲動到輸入區
+    formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -107,6 +132,15 @@ const BuyerForm: React.FC = () => {
         alert("請輸入數量");
         return;
     }
+
+    let finalNotes = notes;
+    if (shopInfo === 'UNIQLO' || shopInfo === 'GU') {
+        if (!itemCode || itemCode.length !== 6) {
+            alert("請輸入正確的 6 碼貨源碼");
+            return;
+        }
+        finalNotes = `[${itemGender}] 貨源碼:${itemCode} / 尺寸:${itemSize || '未填'} / 顏色:${itemColor || '未填'} \n${notes}`;
+    }
     
     const newItem: OrderItem = {
       id: `EXT-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
@@ -120,7 +154,7 @@ const BuyerForm: React.FC = () => {
       calculatedPrice: 0,
       status: OrderStatus.PENDING,
       isPaid: false,
-      notes: notes,
+      notes: finalNotes,
       createdAt: Date.now(),
     };
 
@@ -130,6 +164,9 @@ const BuyerForm: React.FC = () => {
     setQty('');
     setNotes('');
     setImageUrl('');
+    setItemCode('');
+    setItemSize('');
+    setItemColor('');
     if (fileInputRef.current) fileInputRef.current.value = '';
     if (navigator.vibrate) navigator.vibrate(50);
   };
@@ -144,6 +181,10 @@ const BuyerForm: React.FC = () => {
     setIsSending(true);
     let finalCart = [...cart];
     if (productName && qty && parseInt(qty) > 0) {
+         let currentFinalNotes = notes;
+         if (shopInfo === 'UNIQLO' || shopInfo === 'GU') {
+            currentFinalNotes = `[${itemGender}] 貨源碼:${itemCode} / 尺寸:${itemSize} / 顏色:${itemColor} \n${notes}`;
+         }
          finalCart.push({
             id: `EXT-${Date.now()}`,
             buyerName,
@@ -156,7 +197,7 @@ const BuyerForm: React.FC = () => {
             calculatedPrice: 0,
             status: OrderStatus.PENDING,
             isPaid: false,
-            notes,
+            notes: currentFinalNotes,
             createdAt: Date.now(),
          });
     }
@@ -205,6 +246,10 @@ const BuyerForm: React.FC = () => {
     );
   }
 
+  const isUniqloOrGu = shopInfo === 'UNIQLO' || shopInfo === 'GU';
+  const showLawAlert = shopInfo === 'Donki唐吉訶德' || shopInfo === '藥妝';
+  const showShippingAlert = shopInfo === 'Bic Camera' || shopInfo === '3Coins' || shopInfo === 'MUJI';
+
   return (
     <div className="min-h-screen bg-slate-50 pb-24 font-sans">
       <header className="bg-white border-b border-slate-100 sticky top-0 z-40">
@@ -216,12 +261,6 @@ const BuyerForm: React.FC = () => {
                 </div>
                 <h1 className="text-base font-bold text-slate-800">Rento 代購委託單</h1>
             </div>
-            {submitMode === 'cloud' && (
-                <div className="flex items-center gap-1.5 text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-100">
-                    <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></div>
-                    <span className="text-[10px] font-bold uppercase tracking-tight">Online</span>
-                </div>
-            )}
           </div>
       </header>
 
@@ -249,12 +288,24 @@ const BuyerForm: React.FC = () => {
                          </div>
                      </div>
                  </div>
-
-                  <div className="flex items-center gap-2 text-rose-500 bg-rose-50 px-4 py-3 rounded-2xl border border-rose-100">
-                     <Ban size={16} />
-                     <span className="text-xs font-bold">嚴禁菸酒類商品委託</span>
-                 </div>
              </div>
+        </div>
+
+        {/* Categories Section */}
+        <div className="space-y-4">
+          <label className="text-xs font-bold text-slate-400 uppercase tracking-widest px-2">常用通路快速點選</label>
+          <div className="grid grid-cols-4 gap-3">
+              {CATEGORIES.map(cat => (
+                  <button 
+                    key={cat.name} 
+                    onClick={() => handleCategorySelect(cat)}
+                    className={`flex flex-col items-center justify-center p-3 rounded-2xl border transition-all active:scale-95 ${shopInfo === cat.name ? 'bg-indigo-600 border-indigo-600 text-white shadow-lg shadow-indigo-100' : 'bg-white border-slate-100 text-slate-600'}`}
+                  >
+                      <span className="text-xl mb-1">{cat.icon}</span>
+                      <span className="text-[10px] font-bold text-center leading-tight">{cat.name}</span>
+                  </button>
+              ))}
+          </div>
         </div>
         
         {/* Section 1: Buyer Info */}
@@ -272,7 +323,7 @@ const BuyerForm: React.FC = () => {
         </div>
 
         {/* Section 2: Input Area */}
-        <div className="bg-white rounded-[2.5rem] shadow-lg border border-slate-200 p-7 sm:p-9 space-y-7 relative">
+        <div ref={formRef} className="bg-white rounded-[2.5rem] shadow-lg border border-slate-200 p-7 sm:p-9 space-y-7 relative">
           {(isSending || isCompressing) && (
               <div className="absolute inset-0 z-50 bg-white/90 backdrop-blur-sm flex flex-col items-center justify-center space-y-4">
                 <Loader2 size={32} className="text-indigo-600 animate-spin" />
@@ -289,7 +340,7 @@ const BuyerForm: React.FC = () => {
                       id="product-name-input"
                       value={productName}
                       onChange={(e) => setProductName(e.target.value)}
-                      placeholder="請輸入商品名稱，或是直接貼上網址..."
+                      placeholder="請輸入商品名稱"
                       rows={2}
                       className="w-full pl-12 pr-4 py-4 bg-slate-50 rounded-2xl outline-none font-semibold text-sm text-slate-800 resize-none leading-relaxed"
                   />
@@ -301,10 +352,81 @@ const BuyerForm: React.FC = () => {
                       type="text"
                       value={shopInfo}
                       onChange={(e) => setShopInfo(e.target.value)}
-                      placeholder="哪裡買得到 (選填)：例如唐吉訶德、松本清"
+                      placeholder="購買地點 (選填)"
                       className="w-full pl-12 pr-4 py-4 bg-slate-50 rounded-2xl outline-none font-semibold text-sm text-slate-800"
                   />
               </div>
+
+              {/* Conditional Warnings */}
+              {showLawAlert && (
+                  <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 flex gap-3 animate-slide-in">
+                      <AlertCircle className="text-amber-500 shrink-0" size={18} />
+                      <p className="text-[11px] font-bold text-amber-800 leading-relaxed">
+                          因應日本法規，感冒藥及止痛藥或其他人氣商品一人限定購買一個。
+                      </p>
+                  </div>
+              )}
+
+              {showShippingAlert && (
+                  <div className="bg-blue-50 border border-blue-200 rounded-2xl p-4 flex gap-3 animate-slide-in">
+                      <Info className="text-blue-500 shrink-0" size={18} />
+                      <p className="text-[11px] font-bold text-blue-800 leading-relaxed">
+                          大型商品家電或佔重佔空間商品以及液體商品價格另計。
+                      </p>
+                  </div>
+              )}
+
+              {/* UNIQLO / GU Specific Fields */}
+              {isUniqloOrGu && (
+                  <div className="bg-indigo-50/50 border border-indigo-100 rounded-[2rem] p-6 space-y-4 animate-slide-in">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Star size={14} className="text-indigo-500 fill-indigo-500" />
+                        <span className="text-xs font-black text-indigo-700 uppercase tracking-wider">服飾細節規格</span>
+                      </div>
+                      
+                      <div className="grid grid-cols-1 gap-4">
+                          <div className="space-y-1">
+                              <label className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest ml-1">貨源碼 (6碼)</label>
+                              <input 
+                                type="text" maxLength={6} value={itemCode} onChange={e => setItemCode(e.target.value)} 
+                                placeholder="例如: 456789"
+                                className="w-full px-4 py-3 bg-white rounded-xl outline-none font-bold text-sm text-slate-800 border border-indigo-100 focus:border-indigo-400"
+                              />
+                          </div>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-4">
+                          <div className="space-y-1">
+                              <label className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest ml-1">尺寸</label>
+                              <input 
+                                type="text" value={itemSize} onChange={e => setItemSize(e.target.value)} 
+                                placeholder="如: M, XL, 24"
+                                className="w-full px-4 py-3 bg-white rounded-xl outline-none font-bold text-sm text-slate-800 border border-indigo-100 focus:border-indigo-400"
+                              />
+                          </div>
+                          <div className="space-y-1">
+                              <label className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest ml-1">顏色</label>
+                              <input 
+                                type="text" value={itemColor} onChange={e => setItemColor(e.target.value)} 
+                                placeholder="如: 09 BLACK"
+                                className="w-full px-4 py-3 bg-white rounded-xl outline-none font-bold text-sm text-slate-800 border border-indigo-100 focus:border-indigo-400"
+                              />
+                          </div>
+                      </div>
+
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest ml-1">系列</label>
+                        <select 
+                            value={itemGender} onChange={e => setItemGender(e.target.value)}
+                            className="w-full px-4 py-3 bg-white rounded-xl outline-none font-bold text-sm text-slate-800 border border-indigo-100 focus:border-indigo-400 appearance-none"
+                        >
+                            <option value="WOMEN">WOMEN</option>
+                            <option value="MEN">MEN</option>
+                            <option value="KIDS・TEEN">KIDS・TEEN</option>
+                        </select>
+                      </div>
+                  </div>
+              )}
 
               <div className="flex gap-4">
                   <div className="flex-1">
@@ -329,7 +451,7 @@ const BuyerForm: React.FC = () => {
 
               <div className="relative">
                   <MessageSquareText className="absolute left-4 top-4 text-slate-300" size={18} />
-                  <textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="備註 (選填)：例如尺寸、顏色..." rows={2} className="w-full pl-12 pr-4 py-4 bg-slate-50 rounded-2xl outline-none font-medium text-sm text-slate-700 resize-none" />
+                  <textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="額外備註 (選填)..." rows={2} className="w-full pl-12 pr-4 py-4 bg-slate-50 rounded-2xl outline-none font-medium text-sm text-slate-700 resize-none" />
               </div>
 
               <button onClick={addToCart} className="w-full py-4 rounded-2xl font-bold text-sm border-2 border-indigo-600 text-indigo-600 hover:bg-indigo-50 flex items-center justify-center gap-2 transition-all active:scale-95">
