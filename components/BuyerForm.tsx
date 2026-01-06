@@ -159,7 +159,7 @@ const BuyerForm: React.FC = () => {
         } else {
             const secureData = btoa(unescape(encodeURIComponent(JSON.stringify(finalCart))));
             const itemsSummary = finalCart.map((it, idx) => `${idx+1}. ${it.productName} (x${it.requestedQuantity})`).join('\n');
-            const message = `🌸 Rento 代購單\n👤 買家：${buyerName}\n\n${itemsSummary}\n\n📋 識別碼：\nRENTO_DATA::${secureData}::END`;
+            const message = `🌸 れんと代購單\n👤 買家：${buyerName}\n\n${itemsSummary}\n\n📋 識別碼：\nRENTO_DATA::${secureData}::END`;
             navigator.clipboard.writeText(message);
         }
         setSubmitted(true);
@@ -211,7 +211,7 @@ const BuyerForm: React.FC = () => {
           <div className="px-6 py-5 flex items-center justify-between">
             <div className="flex items-center gap-4">
                 <div className="bg-indigo-600 p-2.5 rounded-2xl text-white shadow-lg shadow-indigo-100"><ShoppingBag size={20} strokeWidth={2.5} /></div>
-                <h1 className="text-lg font-black text-slate-800 tracking-tight">Rento 委託填單</h1>
+                <h1 className="text-lg font-black text-slate-800 tracking-tight">れんと委託填單</h1>
             </div>
           </div>
       </header>
@@ -352,7 +352,7 @@ const BuyerForm: React.FC = () => {
         </div>
         
         <p className="text-center mt-12 mb-8 text-[11px] text-slate-300 font-black uppercase tracking-widest opacity-60">
-            Powered by Rento Smart Engine
+            Powered by れんと Smart Engine
         </p>
       </main>
     </div>

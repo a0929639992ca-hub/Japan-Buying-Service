@@ -217,7 +217,7 @@ const App: React.FC = () => {
             </div>
             <div className="flex flex-col min-w-0">
               <h1 className="text-lg sm:text-xl font-extrabold tracking-tight text-slate-900 flex items-center gap-1.5 truncate">
-                Rento <span className="text-indigo-600">Smart</span>
+                れんと <span className="text-indigo-600">Smart</span>
                 {isSyncing && <Loader2 size={12} className="animate-spin text-indigo-400" />}
               </h1>
               <div className="flex items-center gap-1.5 mt-0.5">
