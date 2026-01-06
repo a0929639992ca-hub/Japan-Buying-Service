@@ -1,6 +1,7 @@
-// 基礎匯率設定：根據需求預設為 0.25
+// 基礎匯率設定
+// 規則：日幣總額 >= 5500 匯率 0.23 (優惠), 否則 0.24 (基本)
 export const calculateTwd = (jpyAmount: number): number => {
-  const rate = 0.25;
+  const rate = jpyAmount >= 5500 ? 0.23 : 0.24;
   return Math.ceil(jpyAmount * rate);
 };
 

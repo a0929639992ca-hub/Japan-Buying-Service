@@ -17,7 +17,7 @@ import {
   subscribeToOrders
 } from './services/cloudService.ts';
 import { COST_EXCHANGE_RATE } from './constants.ts';
-import { Search, Share2, Plus, ChevronUp, ChevronDown, Loader2, Banknote, Bell, Inbox, X, Check, Cloud, Sun, Lock, TrendingUp, Settings, Power, Eye, EyeOff, Database, Copy, RefreshCw } from 'lucide-react';
+import { Search, Share2, Plus, ChevronUp, ChevronDown, Loader2, Banknote, Bell, Inbox, X, Check, Cloud, Sun, Lock, TrendingUp, Settings, Power, Eye, EyeOff, Database, Copy, RefreshCw, Wallet } from 'lucide-react';
 
 const FIREBASE_CONFIG: FirebaseConfig = {
   apiKey: "AIzaSyBwRgn0_jCELNK-RO9x3VRhuj2CZsvjpnY",
@@ -293,11 +293,38 @@ const App: React.FC = () => {
           </div>
         )}
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          <div className="bg-white p-8 rounded-4xl border border-slate-200/60 premium-shadow flex flex-col justify-between"><p className="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2"><Banknote size={14} className="text-slate-300" /> 採購預算</p><p className="text-3xl font-black text-slate-900">¥ {stats.jpy.toLocaleString()}</p></div>
-          <div className="bg-white p-8 rounded-4xl border border-slate-200/60 premium-shadow flex flex-col justify-between"><p className="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-4">應收總計</p><p className="text-3xl font-black text-slate-900">NT$ {stats.twd.toLocaleString()}</p></div>
-          <div className="bg-indigo-600 p-8 rounded-4xl shadow-xl shadow-indigo-100 flex flex-col justify-between"><p className="text-[11px] font-black text-indigo-100 uppercase tracking-widest mb-4">已收進帳</p><p className="text-3xl font-black text-white">NT$ {stats.paid.toLocaleString()}</p></div>
-          <div className="bg-amber-400 p-8 rounded-4xl shadow-xl shadow-amber-400/10 flex flex-col justify-between"><p className="text-[11px] font-black text-amber-900/40 uppercase tracking-widest mb-4 flex items-center gap-2"><TrendingUp size={14} className="text-amber-900/30"/> 預估淨利</p><p className="text-3xl font-black text-amber-900">NT$ {stats.profit.toLocaleString()}</p></div>
+        <div className="grid grid-cols-2 gap-4">
+          <div className="bg-white p-5 rounded-[2rem] border border-slate-200/60 premium-shadow relative overflow-hidden group">
+            <div className="absolute top-0 right-0 p-4 opacity-10 transform translate-x-2 -translate-y-2 group-hover:scale-110 transition-transform text-slate-900">
+              <Banknote size={48} />
+            </div>
+            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">採購預算 (JPY)</p>
+            <p className="text-xl sm:text-2xl font-black text-slate-900 truncate">¥ {stats.jpy.toLocaleString()}</p>
+          </div>
+
+          <div className="bg-white p-5 rounded-[2rem] border border-slate-200/60 premium-shadow relative overflow-hidden group">
+             <div className="absolute top-0 right-0 p-4 opacity-10 transform translate-x-2 -translate-y-2 group-hover:scale-110 transition-transform text-slate-900">
+              <Wallet size={48} />
+            </div>
+            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">應收總計 (TWD)</p>
+            <p className="text-xl sm:text-2xl font-black text-slate-900 truncate">NT$ {stats.twd.toLocaleString()}</p>
+          </div>
+
+          <div className="bg-indigo-600 p-5 rounded-[2rem] shadow-xl shadow-indigo-200 relative overflow-hidden group">
+            <div className="absolute top-0 right-0 p-4 text-white opacity-10 transform translate-x-2 -translate-y-2 group-hover:scale-110 transition-transform">
+              <Check size={48} />
+            </div>
+            <p className="text-[10px] font-black text-indigo-200 uppercase tracking-widest mb-1">已收進帳</p>
+            <p className="text-xl sm:text-2xl font-black text-white truncate">NT$ {stats.paid.toLocaleString()}</p>
+          </div>
+
+          <div className="bg-amber-400 p-5 rounded-[2rem] shadow-xl shadow-amber-200 relative overflow-hidden group">
+             <div className="absolute top-0 right-0 p-4 text-amber-900 opacity-10 transform translate-x-2 -translate-y-2 group-hover:scale-110 transition-transform">
+              <TrendingUp size={48} />
+            </div>
+            <p className="text-[10px] font-black text-amber-900/60 uppercase tracking-widest mb-1">預估淨利</p>
+            <p className="text-xl sm:text-2xl font-black text-amber-900 truncate">NT$ {stats.profit.toLocaleString()}</p>
+          </div>
         </div>
 
         <div className="bg-white p-8 rounded-4xl border border-slate-200/60 premium-shadow flex flex-col sm:flex-row sm:items-center justify-between gap-8">
