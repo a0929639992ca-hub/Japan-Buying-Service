@@ -5,7 +5,7 @@ import {
   ShoppingBasket, Trash2, Contact, 
   ShoppingCart, Minus, Plus, 
   Share2, Package, MapPin, Check, Banknote,
-  ChevronDown, ChevronUp, CreditCard, Layers
+  ChevronDown, ChevronUp, CreditCard, Layers, X, ZoomIn
 } from 'lucide-react';
 
 interface OrderListProps {
@@ -16,6 +16,7 @@ interface OrderListProps {
 
 const OrderList: React.FC<OrderListProps> = ({ orders, onRemoveOrder, onUpdateOrder }) => {
   const [expandedBuyers, setExpandedBuyers] = useState<Set<string>>(new Set());
+  const [enlargedImage, setEnlargedImage] = useState<string | null>(null);
 
   if (orders.length === 0) {
     return (
@@ -89,6 +90,11 @@ const OrderList: React.FC<OrderListProps> = ({ orders, onRemoveOrder, onUpdateOr
     alert('對帳明細已複製');
   };
 
+  const openImage = (e: React.MouseEvent, url: string) => {
+    e.stopPropagation();
+    setEnlargedImage(url);
+  };
+
   return (
     <div className="space-y-4">
       <div className="px-4 flex items-center justify-between">
@@ -107,7 +113,6 @@ const OrderList: React.FC<OrderListProps> = ({ orders, onRemoveOrder, onUpdateOr
 
         return (
           <div key={buyerName} className="animate-slide-up">
-            {/* 買家摺疊卡片 Header */}
             <div 
                 onClick={() => toggleBuyer(buyerName)}
                 className={`bg-white rounded-[2rem] border transition-all cursor-pointer overflow-hidden premium-shadow active-scale ${
@@ -153,7 +158,6 @@ const OrderList: React.FC<OrderListProps> = ({ orders, onRemoveOrder, onUpdateOr
                     </div>
                 </div>
 
-                {/* 簡單的進度條 */}
                 <div className="h-1.5 w-full bg-slate-50 overflow-hidden">
                     <div 
                         className={`h-full transition-all duration-700 ${allPaid ? 'bg-emerald-500' : 'bg-indigo-500'}`}
@@ -162,14 +166,25 @@ const OrderList: React.FC<OrderListProps> = ({ orders, onRemoveOrder, onUpdateOr
                 </div>
             </div>
 
-            {/* 展開的詳細商品列表 */}
             {isExpanded && (
                 <div className="space-y-4 px-4 pb-8 animate-slide-up">
                     {items.map((order) => (
                         <div key={order.id} className="bg-white/60 backdrop-blur-sm rounded-[2rem] border border-slate-200/40 p-5 premium-shadow flex flex-col sm:flex-row gap-5 relative group transition-all hover:bg-white">
                             <div className="flex gap-5 flex-1">
-                                <div className="w-16 h-16 shrink-0 rounded-2xl bg-slate-50 border border-slate-100 overflow-hidden relative shadow-inner">
-                                    {order.imageUrl ? <img src={order.imageUrl} alt={order.productName} className="w-full h-full object-cover" /> : <Package size={20} className="m-auto h-full text-slate-200" />}
+                                <div 
+                                  onClick={(e) => order.imageUrl && openImage(e, order.imageUrl)}
+                                  className={`w-16 h-16 shrink-0 rounded-2xl bg-slate-50 border border-slate-100 overflow-hidden relative shadow-inner group/img transition-all ${order.imageUrl ? 'cursor-zoom-in active:scale-95' : ''}`}
+                                >
+                                    {order.imageUrl ? (
+                                      <>
+                                        <img src={order.imageUrl} alt={order.productName} className="w-full h-full object-cover transition-transform group-hover/img:scale-110" />
+                                        <div className="absolute inset-0 bg-black/20 opacity-0 group-hover/img:opacity-100 flex items-center justify-center transition-opacity">
+                                          <ZoomIn size={16} className="text-white" />
+                                        </div>
+                                      </>
+                                    ) : (
+                                      <Package size={20} className="m-auto h-full text-slate-200" />
+                                    )}
                                 </div>
                                 <div className="flex-1 min-w-0 flex flex-col justify-between">
                                     <div className="space-y-1">
@@ -237,6 +252,51 @@ const OrderList: React.FC<OrderListProps> = ({ orders, onRemoveOrder, onUpdateOr
           </div>
         );
       })}
+
+      {/* 圖片放大預覽 Modal */}
+      {enlargedImage && (
+        <div 
+          className="fixed inset-0 z-[100] bg-slate-900/90 backdrop-blur-2xl flex flex-col items-center justify-center p-6 sm:p-12 animate-fade-in"
+          onClick={() => setEnlargedImage(null)}
+        >
+          <div className="absolute top-6 right-6 sm:top-12 sm:right-12 z-[110]">
+            <button 
+              onClick={() => setEnlargedImage(null)}
+              className="p-4 bg-white/10 text-white rounded-full hover:bg-white/20 transition-all active-scale"
+            >
+              <X size={24} />
+            </button>
+          </div>
+          <div className="relative w-full h-full flex items-center justify-center pointer-events-none">
+            <img 
+              src={enlargedImage} 
+              alt="Enlarged" 
+              className="max-w-full max-h-full object-contain rounded-3xl shadow-2xl animate-zoom-in pointer-events-auto"
+              onClick={(e) => e.stopPropagation()}
+            />
+          </div>
+          <p className="mt-8 text-white/40 text-[10px] font-black uppercase tracking-widest pointer-events-none">
+            點擊背景或按鈕以關閉
+          </p>
+        </div>
+      )}
+
+      <style>{`
+        @keyframes zoomIn {
+          from { transform: scale(0.9); opacity: 0; }
+          to { transform: scale(1); opacity: 1; }
+        }
+        .animate-zoom-in {
+          animation: zoomIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+        @keyframes fadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+        .animate-fade-in {
+          animation: fadeIn 0.2s ease-out forwards;
+        }
+      `}</style>
     </div>
   );
 };
