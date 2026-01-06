@@ -4,7 +4,7 @@ import { STATUS_LABELS, STATUS_COLORS, calculateTwd } from '../constants.ts';
 import { 
   ShoppingBasket, Trash2, Contact, 
   ShoppingCart, Minus, Plus, 
-  Share2, Package, MapPin, Check, Banknote,
+  Share2, Package, MapPin, Check,
   ChevronDown, ChevronUp, CreditCard, Layers, X, ZoomIn
 } from 'lucide-react';
 
@@ -20,11 +20,11 @@ const OrderList: React.FC<OrderListProps> = ({ orders, onRemoveOrder, onUpdateOr
 
   if (orders.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-40 bg-white rounded-5xl border-2 border-dashed border-slate-100 animate-slide-up">
-        <div className="w-24 h-24 bg-slate-50 rounded-full flex items-center justify-center mb-8">
-          <ShoppingBasket className="text-slate-200" size={48} />
+      <div className="flex flex-col items-center justify-center py-20 bg-white rounded-3xl border-2 border-dashed border-slate-100 animate-slide-up">
+        <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mb-6">
+          <ShoppingBasket className="text-slate-200" size={32} />
         </div>
-        <h3 className="text-slate-400 text-xl font-black">目前的資料庫是空的</h3>
+        <h3 className="text-slate-400 text-lg font-bold">目前尚無資料</h3>
       </div>
     );
   }
@@ -96,9 +96,9 @@ const OrderList: React.FC<OrderListProps> = ({ orders, onRemoveOrder, onUpdateOr
   };
 
   return (
-    <div className="space-y-4">
-      <div className="px-4 flex items-center justify-between">
-        <h3 className="text-[11px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+    <div className="space-y-3">
+      <div className="px-2 flex items-center justify-between">
+        <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
             <Layers size={14} /> 買家清單 ({buyerNames.length})
         </h3>
       </div>
@@ -115,50 +115,50 @@ const OrderList: React.FC<OrderListProps> = ({ orders, onRemoveOrder, onUpdateOr
           <div key={buyerName} className="animate-slide-up">
             <div 
                 onClick={() => toggleBuyer(buyerName)}
-                className={`bg-white rounded-[2rem] border transition-all cursor-pointer overflow-hidden premium-shadow active-scale ${
-                    isExpanded ? 'border-indigo-500 ring-4 ring-indigo-500/5 mb-4' : 'border-slate-200/60'
+                className={`bg-white rounded-2xl border transition-all cursor-pointer overflow-hidden premium-shadow active-scale ${
+                    isExpanded ? 'border-indigo-500 ring-2 ring-indigo-500/10 mb-2' : 'border-slate-200/60'
                 }`}
             >
-                <div className="p-5 sm:p-6 flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                        <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all ${
+                <div className="p-4 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all shrink-0 ${
                             allPaid ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-900 text-amber-400'
                         }`}>
-                            {allPaid ? <Check size={24} strokeWidth={3} /> : <Contact size={24} />}
+                            {allPaid ? <Check size={20} strokeWidth={3} /> : <Contact size={20} />}
                         </div>
-                        <div>
-                            <h2 className="text-base font-black text-slate-900 flex items-center gap-2">
+                        <div className="min-w-0">
+                            <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2 truncate">
                                 {buyerName}
-                                {allPaid && <span className="bg-emerald-500 text-white text-[8px] px-1.5 py-0.5 rounded-md uppercase tracking-tighter">Done</span>}
+                                {allPaid && <span className="bg-emerald-500 text-white text-[8px] px-1.5 py-0.5 rounded uppercase tracking-tighter">Done</span>}
                             </h2>
-                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-0.5">
-                                {items.length} 筆委託 · {paidItems}/{items.length} 已收
+                            <p className="text-xs font-bold text-slate-400 uppercase mt-0.5">
+                                {items.length} 筆 · {paidItems}/{items.length} 已收
                             </p>
                         </div>
                     </div>
                     
-                    <div className="flex items-center gap-3">
-                        <div className="text-right mr-2">
-                            <span className="text-[9px] font-black text-slate-300 uppercase block leading-none mb-1">Total JPY ¥{buyerTotalJpy.toLocaleString()}</span>
-                            <span className={`text-lg font-black leading-none ${allPaid ? 'text-emerald-600' : 'text-indigo-600'}`}>
+                    <div className="flex items-center gap-3 shrink-0">
+                        <div className="text-right">
+                            <span className="text-[10px] font-bold text-slate-300 uppercase block leading-none mb-1">¥{buyerTotalJpy.toLocaleString()}</span>
+                            <span className={`text-xl font-extrabold leading-none ${allPaid ? 'text-emerald-600' : 'text-indigo-600'}`}>
                                 NT$ {buyerTotalTwd.toLocaleString()}
                             </span>
                         </div>
-                        <div className="flex gap-1">
+                        <div className="flex gap-1 border-l border-slate-100 pl-3">
                             <button 
                                 onClick={(e) => copySummary(e, buyerName, items)}
-                                className="p-3 bg-slate-50 border border-slate-100 rounded-xl text-slate-400 hover:text-indigo-600 active-scale"
+                                className="p-2 bg-slate-50 border border-slate-100 rounded-lg text-slate-400 hover:text-indigo-600 active-scale"
                             >
                                 <Share2 size={16} />
                             </button>
-                            <div className="p-3 text-slate-300">
-                                {isExpanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+                            <div className="p-2 text-slate-300">
+                                {isExpanded ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <div className="h-1.5 w-full bg-slate-50 overflow-hidden">
+                <div className="h-1 w-full bg-slate-50 overflow-hidden">
                     <div 
                         className={`h-full transition-all duration-700 ${allPaid ? 'bg-emerald-500' : 'bg-indigo-500'}`}
                         style={{ width: `${(paidItems / items.length) * 100}%` }}
@@ -167,79 +167,79 @@ const OrderList: React.FC<OrderListProps> = ({ orders, onRemoveOrder, onUpdateOr
             </div>
 
             {isExpanded && (
-                <div className="space-y-4 px-4 pb-8 animate-slide-up">
+                <div className="space-y-2 px-1 pb-4 animate-slide-up">
                     {items.map((order) => (
-                        <div key={order.id} className="bg-white/60 backdrop-blur-sm rounded-[2rem] border border-slate-200/40 p-5 premium-shadow flex flex-col sm:flex-row gap-5 relative group transition-all hover:bg-white">
-                            <div className="flex gap-5 flex-1">
+                        <div key={order.id} className="bg-white rounded-2xl border border-slate-200/60 p-3 premium-shadow flex flex-col sm:flex-row gap-3 relative transition-all hover:bg-slate-50/50">
+                            <div className="flex gap-3 flex-1">
                                 <div 
                                   onClick={(e) => order.imageUrl && openImage(e, order.imageUrl)}
-                                  className={`w-16 h-16 shrink-0 rounded-2xl bg-slate-50 border border-slate-100 overflow-hidden relative shadow-inner group/img transition-all ${order.imageUrl ? 'cursor-zoom-in active:scale-95' : ''}`}
+                                  className={`w-14 h-14 shrink-0 rounded-xl bg-slate-100 border border-slate-200 overflow-hidden relative group/img transition-all ${order.imageUrl ? 'cursor-zoom-in active:scale-95' : ''}`}
                                 >
                                     {order.imageUrl ? (
                                       <>
-                                        <img src={order.imageUrl} alt={order.productName} className="w-full h-full object-cover transition-transform group-hover/img:scale-110" />
+                                        <img src={order.imageUrl} alt={order.productName} className="w-full h-full object-cover" />
                                         <div className="absolute inset-0 bg-black/20 opacity-0 group-hover/img:opacity-100 flex items-center justify-center transition-opacity">
-                                          <ZoomIn size={16} className="text-white" />
+                                          <ZoomIn size={14} className="text-white" />
                                         </div>
                                       </>
                                     ) : (
-                                      <Package size={20} className="m-auto h-full text-slate-200" />
+                                      <Package size={20} className="m-auto h-full text-slate-300" />
                                     )}
                                 </div>
-                                <div className="flex-1 min-w-0 flex flex-col justify-between">
-                                    <div className="space-y-1">
-                                        <div className="flex items-center gap-2 mb-1">
-                                            <span className={`px-2 py-0.5 rounded-lg text-[8px] font-black uppercase tracking-widest ${STATUS_COLORS[order.status]}`}>{STATUS_LABELS[order.status]}</span>
-                                            {order.isPaid && <span className="bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-lg text-[8px] font-black uppercase tracking-widest flex items-center gap-1"><Check size={8} strokeWidth={3} /> Paid</span>}
+                                <div className="flex-1 min-w-0 flex flex-col justify-between py-0.5">
+                                    <div className="space-y-0.5">
+                                        <div className="flex items-center gap-1.5 mb-1">
+                                            <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider ${STATUS_COLORS[order.status]}`}>{STATUS_LABELS[order.status]}</span>
+                                            {order.isPaid && <span className="bg-emerald-50 text-emerald-600 px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider flex items-center gap-0.5"><Check size={8} strokeWidth={3} /> 已付</span>}
                                         </div>
-                                        <h3 className="font-extrabold text-slate-900 text-xs line-clamp-1 leading-tight">{order.productName}</h3>
-                                        {order.shopInfo && <div className="flex items-center gap-1 text-[9px] font-bold text-slate-400"><MapPin size={8} /> {order.shopInfo}</div>}
+                                        <h3 className="font-bold text-slate-900 text-sm line-clamp-1 leading-tight">{order.productName}</h3>
+                                        {order.shopInfo && <div className="flex items-center gap-1 text-[10px] font-medium text-slate-400 truncate"><MapPin size={8} /> {order.shopInfo}</div>}
                                     </div>
-                                    <div className="flex items-end justify-between mt-2">
-                                        <div className="flex flex-col flex-1">
-                                            <div className="flex items-center gap-2">
-                                                <div className="relative">
-                                                    <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[10px] text-slate-400 font-bold">¥</span>
-                                                    <input 
-                                                        type="number" 
-                                                        value={order.originalPriceJpy || ''} 
-                                                        onChange={(e) => handlePriceChange(order, e.target.value)}
-                                                        placeholder="日幣"
-                                                        className="w-20 pl-5 pr-2 py-1 bg-slate-50 border border-slate-100 rounded-lg text-xs font-black text-slate-700 outline-none focus:ring-2 focus:ring-indigo-100 transition-all"
-                                                    />
-                                                </div>
-                                                <span className="text-[10px] font-black text-slate-400">× {getEffectiveQty(order)}</span>
+                                    <div className="flex items-end justify-between mt-1">
+                                        <div className="flex items-center gap-2">
+                                            <div className="relative">
+                                                <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-slate-400 font-bold">¥</span>
+                                                <input 
+                                                    type="number" 
+                                                    value={order.originalPriceJpy || ''} 
+                                                    onChange={(e) => handlePriceChange(order, e.target.value)}
+                                                    className="w-16 pl-5 pr-1 py-0.5 bg-white border border-slate-200 rounded text-xs font-bold text-slate-700 outline-none focus:ring-1 focus:ring-indigo-500"
+                                                />
                                             </div>
+                                            <span className="text-xs font-bold text-slate-400">× {getEffectiveQty(order)}</span>
                                         </div>
                                         <div className="text-right">
-                                            <span className="text-lg font-black text-indigo-600 leading-none">NT$ {order.calculatedPrice.toLocaleString()}</span>
+                                            <span className="text-base font-extrabold text-indigo-600 leading-none">NT$ {order.calculatedPrice.toLocaleString()}</span>
                                         </div>
                                     </div>
                                 </div>
                             </div>
 
-                            <div className="flex sm:flex-col gap-2 shrink-0 justify-between items-center sm:items-end">
-                                <div className="flex items-center bg-slate-50 rounded-xl p-0.5 border border-slate-100 w-fit">
-                                    <button onClick={() => adjustPurchasedQty(order, -1)} className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-indigo-600 active-scale"><Minus size={14}/></button>
-                                    <div className="w-6 text-center text-xs font-black text-slate-800">{order.purchasedQuantity}</div>
-                                    <button onClick={() => adjustPurchasedQty(order, 1)} className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-indigo-600 active-scale"><Plus size={14}/></button>
+                            <div className="flex sm:flex-col gap-2 shrink-0 justify-between items-center sm:items-end border-t sm:border-t-0 sm:border-l border-slate-100 pt-2 sm:pt-0 sm:pl-3">
+                                <div className="flex items-center bg-slate-50 rounded-lg p-0.5 border border-slate-100">
+                                    <button onClick={() => adjustPurchasedQty(order, -1)} className="w-6 h-6 flex items-center justify-center text-slate-400 hover:text-indigo-600 active-scale"><Minus size={12}/></button>
+                                    <div className="w-5 text-center text-xs font-bold text-slate-800">{order.purchasedQuantity}</div>
+                                    <button onClick={() => adjustPurchasedQty(order, 1)} className="w-6 h-6 flex items-center justify-center text-slate-400 hover:text-indigo-600 active-scale"><Plus size={12}/></button>
                                 </div>
-                                <div className="flex gap-1.5">
+                                <div className="flex gap-1">
                                     <button 
                                         onClick={() => onUpdateOrder(order.id, { isPaid: !order.isPaid })}
-                                        className={`p-2.5 rounded-xl transition-all active-scale ${order.isPaid ? 'bg-emerald-500 text-white' : 'bg-slate-100 text-slate-400'}`}
+                                        className={`p-2 rounded-lg transition-all active-scale ${order.isPaid ? 'bg-emerald-500 text-white' : 'bg-slate-50 text-slate-400 border border-slate-200'}`}
+                                        title="標記已付款"
                                     >
                                         <CreditCard size={14} />
                                     </button>
                                     <button 
                                         onClick={() => togglePurchased(order)} 
-                                        className={`p-2.5 rounded-xl transition-all active-scale ${order.status === OrderStatus.PURCHASED ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-400'}`}
+                                        className={`p-2 rounded-lg transition-all active-scale ${order.status === OrderStatus.PURCHASED ? 'bg-indigo-600 text-white' : 'bg-slate-50 text-slate-400 border border-slate-200'}`}
+                                        title="標記已購入"
                                     >
                                         <ShoppingCart size={14} />
                                     </button>
                                     <button 
                                         onClick={() => onRemoveOrder(order.id)} 
-                                        className="p-2.5 rounded-xl bg-rose-50 text-rose-400 active-scale"
+                                        className="p-2 rounded-lg bg-rose-50 text-rose-400 border border-rose-100 active-scale"
+                                        title="刪除"
                                     >
                                         <Trash2 size={14} />
                                     </button>
@@ -253,50 +253,29 @@ const OrderList: React.FC<OrderListProps> = ({ orders, onRemoveOrder, onUpdateOr
         );
       })}
 
-      {/* 圖片放大預覽 Modal */}
       {enlargedImage && (
         <div 
-          className="fixed inset-0 z-[100] bg-slate-900/90 backdrop-blur-2xl flex flex-col items-center justify-center p-6 sm:p-12 animate-fade-in"
+          className="fixed inset-0 z-[100] bg-slate-900/90 backdrop-blur-md flex flex-col items-center justify-center p-4 sm:p-10 animate-fade-in"
           onClick={() => setEnlargedImage(null)}
         >
-          <div className="absolute top-6 right-6 sm:top-12 sm:right-12 z-[110]">
+          <div className="absolute top-4 right-4 z-[110]">
             <button 
               onClick={() => setEnlargedImage(null)}
-              className="p-4 bg-white/10 text-white rounded-full hover:bg-white/20 transition-all active-scale"
+              className="p-3 bg-white/10 text-white rounded-full hover:bg-white/20 transition-all active-scale"
             >
-              <X size={24} />
+              <X size={20} />
             </button>
           </div>
           <div className="relative w-full h-full flex items-center justify-center pointer-events-none">
             <img 
               src={enlargedImage} 
               alt="Enlarged" 
-              className="max-w-full max-h-full object-contain rounded-3xl shadow-2xl animate-zoom-in pointer-events-auto"
+              className="max-w-full max-h-full object-contain rounded-2xl shadow-2xl animate-zoom-in pointer-events-auto"
               onClick={(e) => e.stopPropagation()}
             />
           </div>
-          <p className="mt-8 text-white/40 text-[10px] font-black uppercase tracking-widest pointer-events-none">
-            點擊背景或按鈕以關閉
-          </p>
         </div>
       )}
-
-      <style>{`
-        @keyframes zoomIn {
-          from { transform: scale(0.9); opacity: 0; }
-          to { transform: scale(1); opacity: 1; }
-        }
-        .animate-zoom-in {
-          animation: zoomIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-        }
-        @keyframes fadeIn {
-          from { opacity: 0; }
-          to { opacity: 1; }
-        }
-        .animate-fade-in {
-          animation: fadeIn 0.2s ease-out forwards;
-        }
-      `}</style>
     </div>
   );
 };
