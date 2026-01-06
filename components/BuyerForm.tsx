@@ -44,14 +44,6 @@ const compressImage = (file: File): Promise<string> => {
   });
 };
 
-const CATEGORIES = [
-  { id: 'health', name: '營養保健', icon: '☘️', shop: '松本清、藥妝店', img: 'https://images.unsplash.com/photo-1584017911766-d451b3d0e843?q=80&w=200&auto=format&fit=crop' },
-  { id: 'beauty', name: '美妝美髮', icon: '💄', shop: '@cosme、藥妝店', img: 'https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?q=80&w=200&auto=format&fit=crop' },
-  { id: 'medicine', name: '日常藥品', icon: '💊', shop: '大國藥妝、OS Drug', img: 'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?q=80&w=200&auto=format&fit=crop' },
-  { id: 'snacks', name: '零食飲品', icon: '🍪', shop: '唐吉訶德、超市', img: 'https://images.unsplash.com/photo-1599490659213-e2b9527bb087?q=80&w=200&auto=format&fit=crop' },
-  { id: 'home', name: '美容家電', icon: '⚡', shop: 'Bic Camera、Yodobashi', img: 'https://images.unsplash.com/photo-1527443154391-507e9dc6c5cc?q=80&w=200&auto=format&fit=crop' },
-];
-
 const BuyerForm: React.FC = () => {
   const [buyerName, setBuyerName] = useState('');
   const [productName, setProductName] = useState('');
@@ -90,14 +82,6 @@ const BuyerForm: React.FC = () => {
     }
   }, []);
 
-  const handleCategoryClick = (cat: typeof CATEGORIES[0]) => {
-    setShopInfo(cat.shop);
-    setProductName(`${cat.icon} `);
-    // 聚焦到名稱輸入框
-    const nameInput = document.getElementById('product-name-input');
-    if (nameInput) nameInput.focus();
-  };
-
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -115,8 +99,8 @@ const BuyerForm: React.FC = () => {
   };
 
   const addToCart = () => {
-    if (!productName || productName.trim() === '☘️' || productName.trim() === '💄' || productName.trim() === '💊' || productName.trim() === '🍪' || productName.trim() === '⚡') {
-        alert("請輸入具體商品名稱");
+    if (!productName || !productName.trim()) {
+        alert("請輸入商品名稱");
         return;
     }
     if (!qty || parseInt(qty) <= 0) {
@@ -196,8 +180,8 @@ const BuyerForm: React.FC = () => {
 
   if (submitted) {
     return (
-      <div className="min-h-screen bg-white flex items-center justify-center p-8 font-sans">
-        <div className="max-w-md w-full text-center space-y-8 animate-slide-in">
+      <div className="min-h-screen bg-white flex items-center justify-center p-8 font-sans text-center">
+        <div className="max-w-md w-full space-y-8 animate-slide-in">
           <CheckCircle2 size={56} className="text-indigo-500 mx-auto" />
           <h2 className="text-2xl font-bold text-slate-900">{submitMode === 'cloud' ? '委託單已送達！' : '委託單已生成'}</h2>
           <button onClick={() => { setSubmitted(false); setProductName(''); setQty(''); }} className="w-full bg-slate-100 py-4 rounded-2xl font-bold text-sm text-slate-600">再填一筆委託</button>
@@ -232,6 +216,12 @@ const BuyerForm: React.FC = () => {
                 </div>
                 <h1 className="text-base font-bold text-slate-800">Rento 代購委託單</h1>
             </div>
+            {submitMode === 'cloud' && (
+                <div className="flex items-center gap-1.5 text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-100">
+                    <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></div>
+                    <span className="text-[10px] font-bold uppercase tracking-tight">Online</span>
+                </div>
+            )}
           </div>
       </header>
 
@@ -265,30 +255,6 @@ const BuyerForm: React.FC = () => {
                      <span className="text-xs font-bold">嚴禁菸酒類商品委託</span>
                  </div>
              </div>
-        </div>
-
-        {/* Popular Categories */}
-        <div className="space-y-4">
-          <label className="text-xs font-bold text-slate-400 uppercase tracking-widest px-2">熱門代購類別快速選</label>
-          <div className="flex overflow-x-auto gap-4 pb-2 -mx-5 px-5 no-scrollbar">
-            {CATEGORIES.map((cat) => (
-              <button
-                key={cat.id}
-                onClick={() => handleCategoryClick(cat)}
-                className="shrink-0 w-32 bg-white rounded-3xl border border-slate-200 overflow-hidden shadow-sm active:scale-95 transition-all text-left group"
-              >
-                <div className="h-20 w-full relative">
-                   <img src={cat.img} alt={cat.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform" />
-                   <div className="absolute inset-0 bg-black/20"></div>
-                   <div className="absolute bottom-2 left-2 text-xl">{cat.icon}</div>
-                </div>
-                <div className="p-3">
-                  <p className="text-xs font-bold text-slate-800">{cat.name}</p>
-                  <p className="text-[10px] text-slate-400 mt-0.5 truncate">{cat.shop}</p>
-                </div>
-              </button>
-            ))}
-          </div>
         </div>
         
         {/* Section 1: Buyer Info */}
@@ -343,19 +309,19 @@ const BuyerForm: React.FC = () => {
               <div className="flex gap-4">
                   <div className="flex-1">
                       {imageUrl ? (
-                        <div className="w-full h-36 rounded-2xl overflow-hidden border relative">
+                        <div className="w-full h-36 rounded-2xl overflow-hidden border border-slate-100 relative group">
                             <img src={imageUrl} className="w-full h-full object-cover" />
-                            <button onClick={() => setImageUrl('')} className="absolute top-2 right-2 bg-black/50 text-white p-1.5 rounded-full"><X size={14} /></button>
+                            <button onClick={() => setImageUrl('')} className="absolute top-2 right-2 bg-black/50 text-white p-1.5 rounded-full backdrop-blur-md"><X size={14} /></button>
                         </div>
                       ) : (
-                        <button onClick={() => fileInputRef.current?.click()} className="w-full h-36 rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50 text-slate-400 flex flex-col items-center justify-center gap-2">
+                        <button onClick={() => fileInputRef.current?.click()} className="w-full h-36 rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50 text-slate-400 flex flex-col items-center justify-center gap-2 group hover:bg-slate-100 transition-all">
                             <ImageIcon size={24} />
                             <span className="text-xs font-bold">上傳商品照</span>
                         </button>
                       )}
                       <input type="file" accept="image/*" onChange={handleFileChange} ref={fileInputRef} className="hidden" />
                   </div>
-                  <div className="w-32 flex flex-col items-center justify-center gap-2 bg-slate-50 rounded-2xl p-4">
+                  <div className="w-32 flex flex-col items-center justify-center gap-2 bg-slate-50 rounded-2xl p-4 border border-transparent focus-within:border-indigo-100">
                       <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">數量</label>
                       <input type="number" min="1" value={qty} onChange={(e) => setQty(e.target.value)} className="w-full bg-transparent outline-none font-bold text-3xl text-center text-indigo-600" placeholder="1" />
                   </div>
@@ -366,7 +332,7 @@ const BuyerForm: React.FC = () => {
                   <textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="備註 (選填)：例如尺寸、顏色..." rows={2} className="w-full pl-12 pr-4 py-4 bg-slate-50 rounded-2xl outline-none font-medium text-sm text-slate-700 resize-none" />
               </div>
 
-              <button onClick={addToCart} className="w-full py-4 rounded-2xl font-bold text-sm border-2 border-indigo-600 text-indigo-600 hover:bg-indigo-50 flex items-center justify-center gap-2 transition-all">
+              <button onClick={addToCart} className="w-full py-4 rounded-2xl font-bold text-sm border-2 border-indigo-600 text-indigo-600 hover:bg-indigo-50 flex items-center justify-center gap-2 transition-all active:scale-95">
                   <Plus size={18} strokeWidth={2.5} /> 新增下一項商品
               </button>
           </div>
@@ -378,15 +344,15 @@ const BuyerForm: React.FC = () => {
               <div className="space-y-3">
                   {cart.map((item) => (
                       <div key={item.id} className="bg-white p-4 rounded-3xl border border-slate-200 shadow-sm flex gap-4 relative group">
-                          <div className="w-16 h-16 bg-slate-50 rounded-2xl overflow-hidden shrink-0">
-                              {item.imageUrl ? <img src={item.imageUrl} className="w-full h-full object-cover" /> : <ShoppingBag className="m-auto text-slate-200 h-full" />}
+                          <div className="w-16 h-16 bg-slate-50 rounded-2xl overflow-hidden shrink-0 border border-slate-100">
+                              {item.imageUrl ? <img src={item.imageUrl} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-slate-200"><ShoppingBag size={20}/></div>}
                           </div>
                           <div className="flex-1 min-w-0 pr-10">
                               <h4 className="font-bold text-slate-800 text-sm truncate">{item.productName}</h4>
-                              <p className="text-[10px] text-slate-400 truncate">{item.shopInfo || '不限通路'}</p>
+                              <p className="text-[10px] text-slate-400 truncate font-medium">{item.shopInfo || '不限通路'}</p>
                               <div className="mt-1"><span className="text-xs font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-lg">x{item.requestedQuantity}</span></div>
                           </div>
-                          <button onClick={() => removeFromCart(item.id)} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-300 hover:text-rose-500 p-2"><Trash2 size={18} /></button>
+                          <button onClick={() => removeFromCart(item.id)} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-300 hover:text-rose-500 p-2 transition-colors"><Trash2 size={18} /></button>
                       </div>
                   ))}
               </div>
@@ -394,12 +360,16 @@ const BuyerForm: React.FC = () => {
         )}
 
         <div className="fixed bottom-6 left-5 right-5 z-40 max-w-xl mx-auto">
-           <button onClick={handleBatchSubmit} disabled={isSending || isCompressing || (cart.length === 0 && !productName)} className={`w-full py-5 rounded-[2rem] font-bold text-sm shadow-2xl flex items-center justify-center gap-3 transition-all text-white ${submitMode === 'cloud' ? 'bg-indigo-600' : 'bg-slate-800'}`}>
+           <button onClick={handleBatchSubmit} disabled={isSending || isCompressing || (cart.length === 0 && !productName)} className={`w-full py-5 rounded-[2rem] font-bold text-sm shadow-2xl flex items-center justify-center gap-3 transition-all text-white active:scale-95 disabled:opacity-50 ${submitMode === 'cloud' ? 'bg-indigo-600 shadow-indigo-100' : 'bg-slate-800 shadow-slate-300'}`}>
               {submitMode === 'cloud' ? <CloudLightning size={20} /> : <Send size={20} />}
               {cart.length > 0 ? `確認送出 ${cart.length + (productName ? 1 : 0)} 筆委託` : '確認並送出'}
               <ChevronRight size={18} />
             </button>
         </div>
+        
+        <p className="text-center mt-10 text-[11px] text-slate-400 font-bold uppercase tracking-widest opacity-40">
+            Powered by Rento Smart Agent
+        </p>
       </main>
     </div>
   );
