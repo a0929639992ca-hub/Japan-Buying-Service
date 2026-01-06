@@ -45,7 +45,7 @@ const CATEGORIES = [
   { name: '3Coins', logo: 'https://www.google.com/s2/favicons?sz=128&domain=www.3coins.jp', initial: '3', color: '#3bb99c' },
   { name: 'Bic Camera', logo: 'https://www.google.com/s2/favicons?sz=128&domain=www.biccamera.com', initial: 'B', color: '#e60012' },
   { name: '藥妝店', logo: 'https://www.google.com/s2/favicons?sz=128&domain=www.matsukiyococokara-online.com', initial: '藥', color: '#fbe400' },
-  { name: '伴手禮', logo: 'https://cdn-icons-png.flaticon.com/512/3130/3130310.png', initial: '🎁', color: '#ee9ca7' },
+  { name: '便利商店', logo: 'https://www.google.com/s2/favicons?sz=128&domain=www.lawson.co.jp', initial: 'L', color: '#0066b1' },
 ];
 
 const BuyerForm: React.FC = () => {
