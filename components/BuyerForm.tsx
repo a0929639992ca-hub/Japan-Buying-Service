@@ -47,37 +47,37 @@ const compressImage = (file: File): Promise<string> => {
 const CATEGORIES = [
   { 
     name: 'UNIQLO', 
-    logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/9/92/UNIQLO_logo.svg/200px-UNIQLO_logo.svg.png', 
+    logo: 'https://commons.wikimedia.org/w/index.php?title=Special:Redirect/file/UNIQLO_logo.svg&width=300', 
     type: 'uniqlo' 
   },
   { 
     name: 'GU', 
-    logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/c/cc/GU_logo.svg/200px-GU_logo.svg.png', 
+    logo: 'https://commons.wikimedia.org/w/index.php?title=Special:Redirect/file/GU_logo.svg&width=300', 
     type: 'uniqlo' 
   },
   { 
     name: 'MUJI', 
-    logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/c/ce/Muji_logo.svg/200px-Muji_logo.svg.png', 
+    logo: 'https://commons.wikimedia.org/w/index.php?title=Special:Redirect/file/Muji_logo.svg&width=300', 
     type: 'shipping_alert' 
   },
   { 
     name: 'Donki唐吉訶德', 
-    logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/c/c9/Don_Quijote_%28store%29_logo.svg/200px-Don_Quijote_%28store%29_logo.svg.png', 
+    logo: 'https://commons.wikimedia.org/w/index.php?title=Special:Redirect/file/Don_Quijote_(store)_logo.svg&width=300', 
     type: 'law_alert' 
   },
   { 
     name: '3Coins', 
-    logo: 'https://cdn-icons-png.flaticon.com/512/3232/3232811.png', // 3 Coins stack style
+    logo: 'https://cdn-icons-png.flaticon.com/512/8061/8061483.png', 
     type: 'shipping_alert' 
   },
   { 
     name: 'Bic Camera', 
-    logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/e/e5/Bic_Camera_logo.svg/200px-Bic_Camera_logo.svg.png', 
+    logo: 'https://commons.wikimedia.org/w/index.php?title=Special:Redirect/file/Bic_Camera_logo.svg&width=300', 
     type: 'shipping_alert' 
   },
   { 
     name: '藥妝', 
-    logo: 'https://cdn-icons-png.flaticon.com/512/2966/2966327.png', 
+    logo: 'https://commons.wikimedia.org/w/index.php?title=Special:Redirect/file/Matsumotokiyoshi_logo.svg&width=300', 
     type: 'law_alert' 
   },
   { 
@@ -346,16 +346,20 @@ const BuyerForm: React.FC = () => {
                   <button 
                     key={cat.name} 
                     onClick={() => handleCategorySelect(cat)}
-                    className={`flex flex-col items-center justify-center p-3 rounded-2xl border transition-all active:scale-95 h-24 ${shopInfo === cat.name ? 'bg-indigo-600 border-indigo-600 text-white shadow-lg shadow-indigo-100' : 'bg-white border-slate-100 text-slate-600'}`}
+                    className={`group flex flex-col items-center justify-center p-3 rounded-2xl border transition-all active:scale-95 h-28 ${shopInfo === cat.name ? 'bg-indigo-50 border-indigo-600 shadow-md ring-2 ring-indigo-600/10' : 'bg-white border-slate-100'}`}
                   >
-                      <div className="w-10 h-10 mb-2 flex items-center justify-center overflow-hidden">
+                      <div className="w-12 h-12 mb-3 flex items-center justify-center overflow-hidden bg-white p-1 rounded-xl shadow-sm border border-slate-50 group-active:scale-90 transition-transform">
                         <img 
                           src={cat.logo} 
                           alt={cat.name} 
-                          className={`max-w-full max-h-full object-contain transition-all ${shopInfo === cat.name ? 'brightness-0 invert' : ''}`}
+                          className="max-w-full max-h-full object-contain"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).onerror = null;
+                            (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${cat.name}&background=f1f5f9&color=6366f1&bold=true`;
+                          }}
                         />
                       </div>
-                      <span className="text-[10px] font-bold text-center leading-tight">{cat.name}</span>
+                      <span className={`text-[10px] font-black text-center leading-tight tracking-tighter ${shopInfo === cat.name ? 'text-indigo-600' : 'text-slate-500'}`}>{cat.name}</span>
                   </button>
               ))}
           </div>
@@ -448,7 +452,7 @@ const BuyerForm: React.FC = () => {
                           <div className="space-y-1">
                               <label className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest ml-1">尺寸</label>
                               <input 
-                                type="text" value={itemSize} onChange={e => setItemSize(e.target.value)} 
+                                type="text" value={itemSize} onChange={itemSize => setItemSize(itemSize.target.value)} 
                                 placeholder="如: M, XL, 24"
                                 className="w-full px-4 py-3 bg-white rounded-xl outline-none font-bold text-sm text-slate-800 border border-indigo-100 focus:border-indigo-400"
                               />
