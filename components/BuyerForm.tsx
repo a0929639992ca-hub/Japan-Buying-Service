@@ -44,46 +44,55 @@ const compressImage = (file: File): Promise<string> => {
   });
 };
 
+// 品牌資料與穩定的 Logo 來源
 const CATEGORIES = [
   { 
     name: 'UNIQLO', 
-    logo: 'https://api.faviconkit.com/uniqlo.com/144', 
-    type: 'uniqlo' 
+    logo: 'https://www.google.com/s2/favicons?sz=128&domain=www.uniqlo.com', 
+    fallbackColor: '#ff0000',
+    initial: 'U'
   },
   { 
     name: 'GU', 
-    logo: 'https://api.faviconkit.com/gu-global.com/144', 
-    type: 'uniqlo' 
+    logo: 'https://www.google.com/s2/favicons?sz=128&domain=www.gu-global.com', 
+    fallbackColor: '#0026a3',
+    initial: 'G'
   },
   { 
     name: 'MUJI', 
-    logo: 'https://api.faviconkit.com/muji.com/144', 
-    type: 'shipping_alert' 
+    logo: 'https://www.google.com/s2/favicons?sz=128&domain=www.muji.com', 
+    fallbackColor: '#7f0019',
+    initial: 'M'
   },
   { 
     name: 'Donki唐吉訶德', 
-    logo: 'https://api.faviconkit.com/donki.com/144', 
-    type: 'law_alert' 
+    logo: 'https://www.google.com/s2/favicons?sz=128&domain=www.donki.com', 
+    fallbackColor: '#f7d100',
+    initial: 'D'
   },
   { 
     name: '3Coins', 
-    logo: 'https://api.faviconkit.com/3coins.jp/144', 
-    type: 'shipping_alert' 
+    logo: 'https://www.google.com/s2/favicons?sz=128&domain=www.3coins.jp', 
+    fallbackColor: '#3bb99c',
+    initial: '3'
   },
   { 
     name: 'Bic Camera', 
-    logo: 'https://api.faviconkit.com/biccamera.com/144', 
-    type: 'shipping_alert' 
+    logo: 'https://www.google.com/s2/favicons?sz=128&domain=www.biccamera.com', 
+    fallbackColor: '#e60012',
+    initial: 'B'
   },
   { 
     name: '藥妝', 
-    logo: 'https://api.faviconkit.com/matsukiyococokara-online.com/144', 
-    type: 'law_alert' 
+    logo: 'https://www.google.com/s2/favicons?sz=128&domain=www.matsukiyococokara-online.com', 
+    fallbackColor: '#fbe400',
+    initial: '藥'
   },
   { 
     name: '伴手禮', 
-    logo: 'https://cdn-icons-png.flaticon.com/512/3013/3013444.png', 
-    type: 'normal' 
+    logo: 'https://cdn-icons-png.flaticon.com/512/3130/3130310.png', 
+    fallbackColor: '#ee9ca7',
+    initial: '🎁'
   },
 ];
 
@@ -95,6 +104,9 @@ const BuyerForm: React.FC = () => {
   const [qty, setQty] = useState('');
   const [imageUrl, setImageUrl] = useState('');
   
+  // 追蹤哪些圖片載入失敗了
+  const [brokenImages, setBrokenImages] = useState<Record<string, boolean>>({});
+
   const [itemCode, setItemCode] = useState('');
   const [itemSize, setItemSize] = useState('');
   const [itemColor, setItemColor] = useState('');
@@ -358,16 +370,27 @@ const BuyerForm: React.FC = () => {
                     onClick={() => handleCategorySelect(cat)}
                     className={`group flex flex-col items-center justify-center p-2 rounded-2xl border transition-all active:scale-95 h-28 ${shopInfo === cat.name ? 'bg-indigo-50 border-indigo-600 shadow-md ring-2 ring-indigo-600/10' : 'bg-white border-slate-100'}`}
                   >
-                      <div className="w-14 h-14 mb-2 flex items-center justify-center overflow-hidden rounded-xl bg-white shadow-sm border border-slate-50 group-active:scale-90 p-2.5">
-                        <img 
-                          src={cat.logo} 
-                          alt={cat.name} 
-                          className="max-w-full max-h-full object-contain"
-                          onError={(e) => {
-                            (e.target as HTMLImageElement).onerror = null;
-                            (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${cat.name}&background=f1f5f9&color=6366f1&bold=true`;
-                          }}
-                        />
+                      <div className="w-14 h-14 mb-2 flex items-center justify-center overflow-hidden rounded-xl bg-white shadow-sm border border-slate-50 group-active:scale-90 p-2 relative">
+                        {!brokenImages[cat.name] ? (
+                          <img 
+                            src={cat.logo} 
+                            alt={cat.name} 
+                            className="max-w-full max-h-full object-contain"
+                            onLoad={() => {
+                                // 確保圖片不是空白或 1x1 像數
+                            }}
+                            onError={() => {
+                              setBrokenImages(prev => ({ ...prev, [cat.name]: true }));
+                            }}
+                          />
+                        ) : (
+                          <div 
+                            className="w-full h-full flex items-center justify-center rounded-lg text-white font-black text-xl shadow-inner"
+                            style={{ backgroundColor: cat.fallbackColor }}
+                          >
+                            {cat.initial}
+                          </div>
+                        )}
                       </div>
                       <span className={`text-[9px] font-black text-center leading-tight tracking-tighter ${shopInfo === cat.name ? 'text-indigo-600' : 'text-slate-500'}`}>{cat.name}</span>
                   </button>
