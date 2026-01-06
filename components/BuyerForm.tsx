@@ -47,42 +47,42 @@ const compressImage = (file: File): Promise<string> => {
 const CATEGORIES = [
   { 
     name: 'UNIQLO', 
-    logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/9/92/UNIQLO_logo.svg/200px-UNIQLO_logo.svg.png', 
+    logo: 'https://upload.wikimedia.org/wikipedia/commons/9/92/UNIQLO_logo.svg', 
     type: 'uniqlo' 
   },
   { 
     name: 'GU', 
-    logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/c/cc/GU_logo.svg/200px-GU_logo.svg.png', 
+    logo: 'https://upload.wikimedia.org/wikipedia/commons/c/cc/GU_logo.svg', 
     type: 'uniqlo' 
   },
   { 
     name: 'MUJI', 
-    logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/c/ce/Muji_logo.svg/200px-Muji_logo.svg.png', 
+    logo: 'https://upload.wikimedia.org/wikipedia/commons/c/ce/Muji_logo.svg', 
     type: 'shipping_alert' 
   },
   { 
     name: 'Donki唐吉訶德', 
-    logo: 'https://www.donki.com/img/common/header_logo.png', 
+    logo: 'https://www.google.com/s2/favicons?sz=128&domain=www.donki.com', 
     type: 'law_alert' 
   },
   { 
     name: '3Coins', 
-    logo: 'https://www.3coins.jp/img/common/logo.png', 
+    logo: 'https://www.google.com/s2/favicons?sz=128&domain=www.3coins.jp', 
     type: 'shipping_alert' 
   },
   { 
     name: 'Bic Camera', 
-    logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/e/e5/Bic_Camera_logo.svg/512px-Bic_Camera_logo.svg.png', 
+    logo: 'https://www.google.com/s2/favicons?sz=128&domain=www.biccamera.com', 
     type: 'shipping_alert' 
   },
   { 
     name: '藥妝', 
-    logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/e/ef/Matsumotokiyoshi_logo.svg/512px-Matsumotokiyoshi_logo.svg.png', 
+    logo: 'https://upload.wikimedia.org/wikipedia/commons/e/ef/Matsumotokiyoshi_logo.svg', 
     type: 'law_alert' 
   },
   { 
     name: '伴手禮', 
-    logo: 'https://cdn-icons-png.flaticon.com/512/11542/11542646.png', // Premium gift box
+    logo: 'https://cdn-icons-png.flaticon.com/512/3013/3013444.png', 
     type: 'normal' 
   },
 ];
@@ -348,11 +348,11 @@ const BuyerForm: React.FC = () => {
                     onClick={() => handleCategorySelect(cat)}
                     className={`group flex flex-col items-center justify-center p-2 rounded-2xl border transition-all active:scale-95 h-28 ${shopInfo === cat.name ? 'bg-indigo-50 border-indigo-600 shadow-md ring-2 ring-indigo-600/10' : 'bg-white border-slate-100'}`}
                   >
-                      <div className={`w-14 h-14 mb-2 flex items-center justify-center overflow-hidden rounded-xl shadow-sm border border-slate-50 transition-transform ${cat.name === '3Coins' ? 'bg-[#989d00]' : 'bg-white'} group-active:scale-90 p-1`}>
+                      <div className="w-14 h-14 mb-2 flex items-center justify-center overflow-hidden rounded-xl bg-white shadow-sm border border-slate-50 group-active:scale-90 p-1.5">
                         <img 
                           src={cat.logo} 
                           alt={cat.name} 
-                          className={`max-w-full max-h-full object-contain ${cat.name === '3Coins' ? 'brightness-0 invert' : ''}`}
+                          className="max-w-full max-h-full object-contain"
                           onError={(e) => {
                             (e.target as HTMLImageElement).onerror = null;
                             (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${cat.name}&background=f1f5f9&color=6366f1&bold=true`;
@@ -424,7 +424,7 @@ const BuyerForm: React.FC = () => {
               {showShippingAlert && (
                   <div className="bg-blue-50 border border-blue-200 rounded-2xl p-4 flex gap-3 animate-slide-in">
                       <Info className="text-blue-500 shrink-0" size={18} />
-                      <p className="text-[11px] font-bold text-amber-800 leading-relaxed">
+                      <p className="text-[11px] font-bold text-blue-800 leading-relaxed">
                           大型商品家電或佔重佔空間商品以及液體商品價格另計。
                       </p>
                   </div>
