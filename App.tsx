@@ -87,7 +87,6 @@ const App: React.FC = () => {
     }
   };
 
-  // 當 Store ID 改變時，重新連線與監聽
   useEffect(() => {
     const success = initCloud(FIREBASE_CONFIG);
     setIsCloudConnected(success);
@@ -129,7 +128,6 @@ const App: React.FC = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // --- 管理店鋪 ID ---
   const handleUpdateStoreId = () => {
     if (!tempStoreId.trim()) return;
     if (confirm(`確認切換到店鋪 ID: ${tempStoreId} 嗎？\n這將讀取該 ID 下的所有雲端資料。`)) {
@@ -214,118 +212,117 @@ const App: React.FC = () => {
   if (viewMode === 'buyer') return <BuyerForm />;
 
   return (
-    <div className="min-h-screen bg-[#F1F5F9] text-slate-900 pb-12 font-sans">
-      <header className="sticky top-0 z-40 bg-white/90 backdrop-blur-2xl border-b border-slate-200 shadow-sm">
+    <div className="min-h-screen bg-slate-50 text-slate-900 pb-20 font-sans selection:bg-indigo-100 selection:text-indigo-900">
+      <header className="sticky top-0 z-40 glass border-b border-slate-200/60 premium-shadow">
         <div className="safe-pt"></div>
-        <div className="max-w-5xl mx-auto px-5 py-4 flex justify-between items-center">
+        <div className="max-w-5xl mx-auto px-6 py-4 flex justify-between items-center">
           <div className="flex items-center gap-4">
-            <div className="relative bg-slate-900 p-2.5 rounded-2xl text-amber-400 ring-1 ring-slate-800 shadow-xl">
-              <RentoLogo className="w-5 h-5" />
+            <div className="relative bg-slate-900 p-3 rounded-2xl text-amber-400 ring-1 ring-white/10 shadow-xl active-scale">
+              <RentoLogo className="w-6 h-6" />
             </div>
             <div className="flex flex-col">
-              <h1 className="text-xl font-black tracking-tighter text-slate-900 flex items-center gap-2">
+              <h1 className="text-xl font-extrabold tracking-tight text-slate-900 flex items-center gap-2">
                 Rento <span className="text-indigo-600">Smart</span>
-                {isSyncing && <Loader2 size={12} className="animate-spin text-indigo-400" />}
+                {isSyncing && <Loader2 size={14} className="animate-spin text-indigo-400" />}
               </h1>
-              <div className="flex items-center gap-1.5 mt-1">
-                 <span className={`text-[9px] font-black uppercase tracking-widest flex items-center gap-1 ${isCloudConnected ? 'text-emerald-600' : 'text-slate-400'}`}>
-                    <Cloud size={10} /> {isCloudConnected ? 'Permanent Sync' : 'Local Mode'}
+              <div className="flex items-center gap-1.5 mt-0.5">
+                 <span className={`text-[10px] font-bold uppercase tracking-widest flex items-center gap-1 ${isCloudConnected ? 'text-emerald-600' : 'text-slate-400'}`}>
+                    <Cloud size={10} /> {isCloudConnected ? 'Active Cloud' : 'Offline'}
                  </span>
               </div>
             </div>
           </div>
           
-          <div className="flex items-center gap-2">
-            <button onClick={toggleWakeLock} className={`p-3 rounded-2xl transition-all shadow-sm active:scale-90 ${isWakeLockActive ? 'bg-amber-400 text-slate-900' : 'bg-white border border-slate-200 text-slate-400'}`}>
-                {isWakeLockActive ? <Sun size={18} fill="currentColor" /> : <Lock size={18} />}
+          <div className="flex items-center gap-2.5">
+            <button onClick={toggleWakeLock} className={`p-3.5 rounded-2xl transition-all shadow-sm active-scale ${isWakeLockActive ? 'bg-amber-400 text-slate-900' : 'bg-white border border-slate-200 text-slate-400'}`}>
+                {isWakeLockActive ? <Sun size={20} fill="currentColor" /> : <Lock size={20} />}
             </button>
             <div className="relative" ref={inboxRef}>
-                <button onClick={() => { setIsInboxOpen(!isInboxOpen); requestNotificationPermission(); }} className={`p-3 rounded-2xl transition-all shadow-sm active:scale-90 relative ${inboxItems.length > 0 ? 'bg-indigo-600 text-white shadow-indigo-200' : 'bg-white border border-slate-200 text-slate-400'}`}>
-                    <Bell size={18} fill={inboxItems.length > 0 ? "currentColor" : "none"} />
-                    {inboxItems.length > 0 && <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-rose-500 ring-2 ring-white text-[9px] font-bold text-white">{inboxItems.length}</span>}
+                <button onClick={() => { setIsInboxOpen(!isInboxOpen); requestNotificationPermission(); }} className={`p-3.5 rounded-2xl transition-all shadow-sm active-scale relative ${inboxItems.length > 0 ? 'bg-indigo-600 text-white shadow-indigo-200' : 'bg-white border border-slate-200 text-slate-400'}`}>
+                    <Bell size={20} fill={inboxItems.length > 0 ? "currentColor" : "none"} />
+                    {inboxItems.length > 0 && <span className="absolute -top-1.5 -right-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-rose-500 ring-2 ring-white text-[10px] font-black text-white">{inboxItems.length}</span>}
                 </button>
                 {isInboxOpen && (
-                    <div className="fixed top-24 left-4 right-4 w-auto sm:absolute sm:top-full sm:right-0 sm:left-auto sm:w-96 sm:mt-3 bg-white rounded-[2rem] shadow-2xl border border-slate-100 overflow-hidden animate-slide-in origin-top sm:origin-top-right z-50">
-                        <div className="p-4 border-b border-slate-100 bg-slate-50/50 flex justify-between items-center"><span className="text-sm font-black text-slate-800">雲端收件匣</span></div>
-                        <div className="max-h-[60vh] overflow-y-auto p-2 space-y-2">
-                            {inboxItems.length === 0 ? <div className="py-8 text-center text-slate-400 text-xs">目前沒有新委託</div> : inboxItems.map(item => (
-                                <div key={item.id} className="bg-white p-3 rounded-2xl border border-slate-100 shadow-sm flex flex-col gap-3">
-                                    <div className="flex gap-3">
-                                        <div className="w-12 h-12 bg-slate-50 rounded-xl overflow-hidden shrink-0">{item.imageUrl ? <img src={item.imageUrl} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-slate-200"><Inbox size={16}/></div>}</div>
-                                        <div className="flex-1 min-w-0"><h4 className="font-bold text-sm text-slate-800 truncate">{item.productName}</h4><p className="text-xs text-slate-500">{item.buyerName} <span className="text-indigo-500 font-bold">x{item.requestedQuantity}</span></p></div>
+                    <div className="fixed top-24 left-4 right-4 w-auto sm:absolute sm:top-full sm:right-0 sm:left-auto sm:w-96 sm:mt-4 bg-white rounded-[2.5rem] shadow-2xl border border-slate-100 overflow-hidden animate-slide-up origin-top sm:origin-top-right z-50">
+                        <div className="p-5 border-b border-slate-50 bg-slate-50/50 flex justify-between items-center"><span className="text-sm font-black text-slate-800">雲端收件匣</span></div>
+                        <div className="max-h-[60vh] overflow-y-auto p-3 space-y-3">
+                            {inboxItems.length === 0 ? <div className="py-12 text-center text-slate-400 text-sm font-medium">目前的收件匣是空的</div> : inboxItems.map(item => (
+                                <div key={item.id} className="bg-white p-4 rounded-3xl border border-slate-100 shadow-sm flex flex-col gap-4">
+                                    <div className="flex gap-4">
+                                        <div className="w-14 h-14 bg-slate-50 rounded-2xl overflow-hidden shrink-0 border border-slate-50">{item.imageUrl ? <img src={item.imageUrl} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-slate-200"><Inbox size={20}/></div>}</div>
+                                        <div className="flex-1 min-w-0"><h4 className="font-bold text-sm text-slate-800 truncate">{item.productName}</h4><p className="text-xs text-slate-500 mt-1">{item.buyerName} <span className="text-indigo-600 font-black">x{item.requestedQuantity}</span></p></div>
                                     </div>
-                                    <div className="flex gap-2"><button onClick={() => handleRejectInboxItem(item.id)} className="flex-1 py-2 text-xs font-bold text-slate-400 bg-slate-50 rounded-xl">忽略</button><button onClick={() => handleAcceptInboxItem(item)} className="flex-1 py-2 text-xs font-bold text-white bg-indigo-600 rounded-xl">接收並存檔</button></div>
+                                    <div className="flex gap-2.5"><button onClick={() => handleRejectInboxItem(item.id)} className="flex-1 py-3 text-xs font-black text-slate-400 bg-slate-50 rounded-2xl active-scale">忽略</button><button onClick={() => handleAcceptInboxItem(item)} className="flex-1 py-3 text-xs font-black text-white bg-indigo-600 rounded-2xl active-scale">接受並存檔</button></div>
                                 </div>
                             ))}
                         </div>
                     </div>
                 )}
             </div>
-            <button onClick={() => setIsSettingsOpen(!isSettingsOpen)} className={`p-3 rounded-2xl transition-all shadow-sm active:scale-90 ${isSettingsOpen ? 'bg-slate-800 text-white' : 'bg-white border border-slate-200 text-slate-400'}`}>
-                <Settings size={18} />
+            <button onClick={() => setIsSettingsOpen(!isSettingsOpen)} className={`p-3.5 rounded-2xl transition-all shadow-sm active-scale ${isSettingsOpen ? 'bg-slate-800 text-white' : 'bg-white border border-slate-200 text-slate-400'}`}>
+                <Settings size={20} />
             </button>
-            <button onClick={() => setIsCalculatorOpen(true)} className="p-3 bg-white border border-slate-200 rounded-2xl text-slate-400 active:scale-90 shadow-sm"><CalcIcon size={18} /></button>
-            <button onClick={handleShareLink} className="px-5 py-3 bg-indigo-600 text-white rounded-2xl text-xs font-black shadow-lg shadow-indigo-200 active:scale-95 flex items-center gap-2"><Share2 size={14} strokeWidth={3} /><span className="hidden sm:inline">發布連結</span></button>
+            <button onClick={handleShareLink} className="px-6 py-3.5 bg-indigo-600 text-white rounded-2xl text-xs font-black shadow-lg shadow-indigo-100 active-scale flex items-center gap-2"><Share2 size={16} strokeWidth={2.5} /><span className="hidden sm:inline">發布委託單</span></button>
           </div>
         </div>
       </header>
 
-      <main className="max-w-5xl mx-auto px-5 py-8 space-y-8">
+      <main className="max-w-5xl mx-auto px-6 py-10 space-y-10">
         
         {isSettingsOpen && (
-          <div className="bg-slate-900 rounded-[2.5rem] p-8 text-white shadow-2xl animate-slide-in space-y-6">
+          <div className="bg-slate-900 rounded-5xl p-8 text-white shadow-2xl animate-slide-up space-y-8">
              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                   <div className="p-3 bg-white/10 rounded-2xl text-amber-400"><Database size={20}/></div>
-                   <div><h3 className="font-bold text-lg">雲端同步設定</h3><p className="text-[10px] text-white/50 font-bold uppercase tracking-widest">Store ID Persistence</p></div>
+                <div className="flex items-center gap-4">
+                   <div className="p-4 bg-white/10 rounded-2xl text-amber-400"><Database size={24}/></div>
+                   <div><h3 className="font-extrabold text-xl">雲端同步設定</h3><p className="text-[10px] text-white/40 font-black uppercase tracking-widest mt-0.5">Management & Restore</p></div>
                 </div>
-                <button onClick={() => setIsSettingsOpen(false)} className="p-2 bg-white/5 rounded-xl text-white/40"><X size={18}/></button>
+                <button onClick={() => setIsSettingsOpen(false)} className="p-2.5 bg-white/5 rounded-xl text-white/40"><X size={20}/></button>
              </div>
              
-             <div className="bg-white/5 p-6 rounded-[2rem] border border-white/10 space-y-4">
+             <div className="bg-white/5 p-8 rounded-4xl border border-white/10 space-y-6">
                 <div className="flex justify-between items-center">
-                   <label className="text-[10px] font-bold text-white/40 uppercase tracking-widest">您的店鋪專屬識別碼 (請備妥此 ID)</label>
-                   <button onClick={() => { navigator.clipboard.writeText(storeId); alert('已複製 ID'); }} className="flex items-center gap-1.5 text-[9px] font-black text-amber-400 uppercase tracking-widest bg-amber-400/10 px-2 py-1 rounded-lg"><Copy size={10}/> 複製</button>
+                   <label className="text-[11px] font-black text-white/40 uppercase tracking-widest">店鋪識別碼 (Store ID)</label>
+                   <button onClick={() => { navigator.clipboard.writeText(storeId); alert('已複製 ID'); }} className="flex items-center gap-2 text-[10px] font-black text-amber-400 uppercase tracking-widest bg-amber-400/10 px-3 py-1.5 rounded-xl"><Copy size={12}/> 複製</button>
                 </div>
-                <div className="flex gap-3">
-                   <input type="text" value={tempStoreId} onChange={(e) => setTempStoreId(e.target.value)} className="flex-1 bg-black/30 border border-white/10 rounded-2xl px-5 py-4 text-sm font-mono text-amber-300 outline-none focus:border-amber-400/50" />
-                   <button onClick={handleUpdateStoreId} className="px-6 bg-white text-slate-900 rounded-2xl font-black text-xs flex items-center gap-2 active:scale-95"><RefreshCw size={14}/> 同步</button>
+                <div className="flex gap-4">
+                   <input type="text" value={tempStoreId} onChange={(e) => setTempStoreId(e.target.value)} className="flex-1 bg-black/40 border border-white/10 rounded-2xl px-6 py-4 text-sm font-mono text-amber-300 outline-none focus:border-amber-400/50 transition-all" />
+                   <button onClick={handleUpdateStoreId} className="px-8 bg-white text-slate-900 rounded-2xl font-black text-sm flex items-center gap-2 active-scale"><RefreshCw size={16}/> 同步</button>
                 </div>
-                <p className="text-[10px] text-white/30 leading-relaxed px-1">
-                   ※ Store ID 是您雲端資料的唯一鑰匙。重新部署 Vercel 後，如果您發現資料消失，請在此輸入您原本備份的 ID 即可找回所有委託單。
+                <p className="text-[11px] text-white/30 leading-relaxed max-w-lg">
+                   ※ Store ID 是您雲端資料的唯一憑證。若更換設備或重新部署，只需在此輸入原本的 ID 即可找回所有訂單。
                 </p>
              </div>
           </div>
         )}
 
-        <div className="bg-white p-6 rounded-[2rem] border border-slate-200 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="bg-white p-8 rounded-4xl border border-slate-200/60 premium-shadow flex flex-col justify-between"><p className="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2"><Banknote size={14} className="text-slate-300" /> 採購預算</p><p className="text-3xl font-black text-slate-900">¥ {stats.jpy.toLocaleString()}</p></div>
+          <div className="bg-white p-8 rounded-4xl border border-slate-200/60 premium-shadow flex flex-col justify-between"><p className="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-4">應收總計</p><p className="text-3xl font-black text-slate-900">NT$ {stats.twd.toLocaleString()}</p></div>
+          <div className="bg-indigo-600 p-8 rounded-4xl shadow-xl shadow-indigo-100 flex flex-col justify-between"><p className="text-[11px] font-black text-indigo-100 uppercase tracking-widest mb-4">已收進帳</p><p className="text-3xl font-black text-white">NT$ {stats.paid.toLocaleString()}</p></div>
+          <div className="bg-amber-400 p-8 rounded-4xl shadow-xl shadow-amber-400/10 flex flex-col justify-between"><p className="text-[11px] font-black text-amber-900/40 uppercase tracking-widest mb-4 flex items-center gap-2"><TrendingUp size={14} className="text-amber-900/30"/> 預估淨利</p><p className="text-3xl font-black text-amber-900">NT$ {stats.profit.toLocaleString()}</p></div>
+        </div>
+
+        <div className="bg-white p-8 rounded-4xl border border-slate-200/60 premium-shadow flex flex-col sm:flex-row sm:items-center justify-between gap-8">
+            <div className="flex items-center gap-5">
+                <div className={`p-4 rounded-2xl shadow-inner ${formConfig.isFormActive ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'}`}>{formConfig.isFormActive ? <Eye size={24}/> : <EyeOff size={24}/>}</div>
+                <div><h3 className="text-base font-black text-slate-800">買家填單表單</h3><p className="text-[11px] text-slate-400 font-bold uppercase tracking-widest mt-1">{formConfig.isFormActive ? '目前已連線開放' : '目前暫停接單'}</p></div>
+            </div>
             <div className="flex items-center gap-4">
-                <div className={`p-3 rounded-2xl ${formConfig.isFormActive ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'}`}>{formConfig.isFormActive ? <Eye size={20}/> : <EyeOff size={20}/>}</div>
-                <div><h3 className="text-sm font-black text-slate-800">買家表單狀態</h3><p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">{formConfig.isFormActive ? '雲端同步開放中' : '已關閉接單'}</p></div>
-            </div>
-            <div className="flex items-center gap-3">
-                <div className="flex flex-col gap-1"><span className="text-[9px] font-black text-slate-300 uppercase tracking-widest ml-1">截單時間</span><input type="text" value={formConfig.deadline} onChange={(e) => handleUpdateDeadline(e.target.value)} className="bg-slate-50 border border-slate-100 rounded-xl px-4 py-2 text-xs font-bold text-slate-700 outline-none w-44" /></div>
-                <button onClick={handleToggleForm} className={`px-6 py-3 rounded-2xl font-black text-xs transition-all shadow-sm active:scale-95 flex items-center gap-2 ${formConfig.isFormActive ? 'bg-rose-500 text-white shadow-rose-200' : 'bg-emerald-500 text-white shadow-emerald-200'}`}><Power size={14} />{formConfig.isFormActive ? '關閉' : '開啟'}</button>
+                <div className="flex flex-col gap-1.5"><span className="text-[10px] font-black text-slate-300 uppercase tracking-widest ml-1">截單日</span><input type="text" value={formConfig.deadline} onChange={(e) => handleUpdateDeadline(e.target.value)} className="bg-slate-50 border border-slate-200 rounded-xl px-5 py-3 text-xs font-bold text-slate-700 outline-none w-48 focus:ring-2 focus:ring-indigo-100 transition-all" /></div>
+                <button onClick={handleToggleForm} className={`px-8 py-4 rounded-2xl font-black text-xs transition-all active-scale flex items-center gap-2 ${formConfig.isFormActive ? 'bg-rose-500 text-white shadow-lg shadow-rose-100' : 'bg-emerald-500 text-white shadow-lg shadow-emerald-100'}`}><Power size={16} />{formConfig.isFormActive ? '停止接單' : '啟動接單'}</button>
             </div>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className="bg-white p-6 rounded-[2rem] border border-slate-200 shadow-sm"><p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 flex items-center gap-1.5"><Banknote size={12} /> 採購預算</p><p className="text-2xl font-black text-slate-900">¥ {stats.jpy.toLocaleString()}</p></div>
-          <div className="bg-white p-6 rounded-[2rem] border border-slate-200 shadow-sm"><p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">應收總計</p><p className="text-2xl font-black text-slate-900">NT$ {stats.twd.toLocaleString()}</p></div>
-          <div className="bg-emerald-500 p-6 rounded-[2rem] shadow-xl shadow-emerald-500/10"><p className="text-[10px] font-black text-emerald-100 uppercase tracking-widest mb-2">已收進帳</p><p className="text-2xl font-black text-white">NT$ {stats.paid.toLocaleString()}</p></div>
-          <div className="bg-amber-400 p-6 rounded-[2rem] shadow-xl shadow-amber-400/20"><p className="text-[10px] font-black text-amber-900/60 uppercase tracking-widest mb-2 flex items-center gap-1.5"><TrendingUp size={12}/> 預估淨賺</p><p className="text-2xl font-black text-amber-900">NT$ {stats.profit.toLocaleString()}</p></div>
-        </div>
-
-        <button onClick={() => setIsFormOpen(!isFormOpen)} className="w-full bg-white px-8 py-6 rounded-[2rem] border border-slate-200 shadow-sm flex items-center justify-between transition-all hover:border-indigo-200 group">
-          <div className="flex items-center gap-4"><div className={`p-2 rounded-xl transition-all ${isFormOpen ? 'bg-indigo-100 text-indigo-600 rotate-45' : 'bg-slate-100 text-slate-600'}`}><Plus size={22} strokeWidth={3} /></div><div className="text-left"><span className="font-black text-base text-slate-800 block">建立新委託</span><span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Add Manually</span></div></div>
-          {isFormOpen ? <ChevronUp size={20} className="text-slate-300"/> : <ChevronDown size={20} className="text-slate-300"/>}
+        <button onClick={() => setIsFormOpen(!isFormOpen)} className="w-full bg-white px-10 py-8 rounded-5xl border border-slate-200/60 premium-shadow flex items-center justify-between transition-all hover:border-indigo-200 group active-scale">
+          <div className="flex items-center gap-6"><div className={`p-3 rounded-2xl transition-all ${isFormOpen ? 'bg-indigo-100 text-indigo-600 rotate-45' : 'bg-slate-100 text-slate-600'}`}><Plus size={28} strokeWidth={3} /></div><div className="text-left"><span className="font-extrabold text-lg text-slate-800 block">手動建立委託</span><span className="text-[11px] text-slate-400 font-black uppercase tracking-widest mt-1">Add to list manually</span></div></div>
+          {isFormOpen ? <ChevronUp size={24} className="text-slate-300"/> : <ChevronDown size={24} className="text-slate-300"/>}
         </button>
 
-        {isFormOpen && <div className="bg-white rounded-[2rem] border border-slate-200 shadow-sm overflow-hidden animate-slide-in"><OrderForm onAddOrder={handleAddOrder} /></div>}
+        {isFormOpen && <div className="bg-white rounded-5xl border border-slate-200 premium-shadow overflow-hidden animate-slide-up"><OrderForm onAddOrder={handleAddOrder} /></div>}
 
         <div className="relative group">
-          <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-indigo-500 transition-colors" size={20} />
-          <input type="text" placeholder="搜尋雲端資料庫..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="w-full pl-16 pr-6 py-5 bg-white border border-slate-200 rounded-[2rem] shadow-sm outline-none focus:ring-4 focus:ring-indigo-500/5 transition-all text-sm font-bold" />
+          <Search className="absolute left-8 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-indigo-500 transition-colors" size={24} />
+          <input type="text" placeholder="輸入買家、商品名稱搜尋資料庫..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="w-full pl-20 pr-8 py-6 bg-white border border-slate-200/60 rounded-5xl premium-shadow outline-none focus:ring-4 focus:ring-indigo-500/5 transition-all text-sm font-bold placeholder:text-slate-300" />
         </div>
 
         <OrderList orders={filteredOrders} onRemoveOrder={handleRemoveOrder} onUpdateOrder={handleUpdateOrder} />
