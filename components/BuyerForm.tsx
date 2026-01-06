@@ -44,7 +44,6 @@ const compressImage = (file: File): Promise<string> => {
   });
 };
 
-// 品牌資料與穩定的 Logo 來源
 const CATEGORIES = [
   { 
     name: 'UNIQLO', 
@@ -146,21 +145,12 @@ const BuyerForm: React.FC = () => {
 
   const handleCategorySelect = (cat: typeof CATEGORIES[0]) => {
     setShopInfo(cat.name);
-    
-    // 改為跳轉至「聯絡資料」區塊，讓買家先確認身份
     setTimeout(() => {
       const element = buyerNameSectionRef.current;
       if (element) {
         const headerOffset = 85; 
-        const elementPosition = element.getBoundingClientRect().top;
-        const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
-
-        window.scrollTo({
-          top: offsetPosition,
-          behavior: 'smooth'
-        });
-        
-        // 聚焦至「您的暱稱」輸入框
+        const offsetPosition = element.getBoundingClientRect().top + window.pageYOffset - headerOffset;
+        window.scrollTo({ top: offsetPosition, behavior: 'smooth' });
         const input = document.getElementById('buyer-name-input');
         if (input) input.focus();
       }
@@ -175,7 +165,6 @@ const BuyerForm: React.FC = () => {
         const compressedDataUrl = await compressImage(file);
         setImageUrl(compressedDataUrl);
       } catch (err) {
-        console.error("Image compression failed", err);
         alert("圖片處理失敗，請試著換一張圖");
       } finally {
         setIsCompressing(false);
@@ -184,21 +173,12 @@ const BuyerForm: React.FC = () => {
   };
 
   const addToCart = () => {
-    if (!productName || !productName.trim()) {
-        alert("請輸入商品名稱");
-        return;
-    }
-    if (!qty || parseInt(qty) <= 0) {
-        alert("請輸入數量");
-        return;
-    }
+    if (!productName || !productName.trim()) { alert("請輸入商品名稱"); return; }
+    if (!qty || parseInt(qty) <= 0) { alert("請輸入數量"); return; }
 
     let finalNotes = notes;
     if (shopInfo === 'UNIQLO' || shopInfo === 'GU') {
-        if (!itemCode || itemCode.length !== 6) {
-            alert("請輸入正確的 6 碼貨源碼");
-            return;
-        }
+        if (!itemCode || itemCode.length !== 6) { alert("請輸入正確的 6 碼貨源碼"); return; }
         finalNotes = `[${itemGender}] 貨源碼:${itemCode} / 尺寸:${itemSize || '未填'} / 顏色:${itemColor || '未填'} \n${notes}`;
     }
     
@@ -283,7 +263,6 @@ const BuyerForm: React.FC = () => {
             setQty('');
         }, 800);
     } catch (err) {
-        console.error("Submit error:", err);
         alert("傳送失敗，請檢查網路連線或聯絡團長");
         setIsSending(false);
     }
@@ -291,29 +270,17 @@ const BuyerForm: React.FC = () => {
 
   if (submitted) {
     return (
-      <div className="min-h-screen bg-white flex items-center justify-center p-8 font-sans text-center">
+      <div className="min-h-screen bg-white flex items-center justify-center p-8 text-center">
         <div className="max-w-md w-full space-y-8 animate-slide-in">
           <CheckCircle2 size={56} className="text-indigo-500 mx-auto" />
           <h2 className="text-2xl font-bold text-slate-900">{submitMode === 'cloud' ? '委託單已送達！' : '委託單已生成'}</h2>
-          
           {submitMode === 'manual' && generatedMessage && (
             <div className="bg-slate-50 p-4 rounded-2xl text-left border border-slate-100">
               <p className="text-[10px] font-bold text-slate-400 uppercase mb-2">請複製以下文字傳送給團長：</p>
-              <pre className="text-[10px] whitespace-pre-wrap break-all bg-white p-3 rounded-xl border border-slate-200 text-slate-600 font-mono mb-3">
-                {generatedMessage}
-              </pre>
-              <button 
-                onClick={() => {
-                  navigator.clipboard.writeText(generatedMessage);
-                  alert("已複製到剪貼簿！");
-                }}
-                className="w-full py-2 bg-indigo-600 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-2 active:scale-95"
-              >
-                <Copy size={14} /> 點擊複製
-              </button>
+              <pre className="text-[10px] whitespace-pre-wrap break-all bg-white p-3 rounded-xl border border-slate-200 text-slate-600 font-mono mb-3">{generatedMessage}</pre>
+              <button onClick={() => { navigator.clipboard.writeText(generatedMessage); alert("已複製到剪貼簿！"); }} className="w-full py-2 bg-indigo-600 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-2 active:scale-95"><Copy size={14} /> 點擊複製</button>
             </div>
           )}
-
           <button onClick={() => { setSubmitted(false); setGeneratedMessage(''); }} className="w-full bg-slate-100 py-4 rounded-2xl font-bold text-sm text-slate-600">再填一筆委託</button>
         </div>
       </div>
@@ -345,16 +312,13 @@ const BuyerForm: React.FC = () => {
           <div className="safe-pt"></div>
           <div className="px-6 py-5 flex items-center justify-between">
             <div className="flex items-center gap-3">
-                <div className="bg-indigo-600 p-2 rounded-xl text-white shadow-md">
-                  <ShoppingBag size={18} strokeWidth={2.5} />
-                </div>
+                <div className="bg-indigo-600 p-2 rounded-xl text-white shadow-md"><ShoppingBag size={18} strokeWidth={2.5} /></div>
                 <h1 className="text-base font-bold text-slate-800">Rento 代購委託單</h1>
             </div>
           </div>
       </header>
 
       <main className="max-w-xl mx-auto p-5 space-y-6">
-        
         <div className="bg-white rounded-[2rem] p-7 shadow-sm border border-slate-200 overflow-hidden relative">
              <div className="relative z-10 space-y-6">
                  <div>
@@ -362,18 +326,11 @@ const BuyerForm: React.FC = () => {
                      <p className="text-sm text-slate-400 mt-2 font-medium">115.01.27 - 01.29 🇯🇵 希望能補貼一點旅費 ❤️</p>
                      <p className="text-[10px] text-indigo-400 font-bold mt-2 tracking-widest uppercase">截單時間：{formConfig.deadline}</p>
                  </div>
-
                  <div className="bg-slate-50 p-5 rounded-3xl space-y-4">
                      <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1.5"><Star size={14} className="text-amber-400 fill-amber-400"/> 代購匯率說明</h3>
                      <div className="grid grid-cols-1 gap-3">
-                         <div className="bg-white p-4 rounded-2xl flex justify-between items-center shadow-sm">
-                             <div className="text-sm font-medium text-slate-600">總額滿 <span className="font-bold text-slate-900">¥5500</span></div>
-                             <div className="text-base font-bold text-indigo-600">× 0.23</div>
-                         </div>
-                         <div className="bg-white p-4 rounded-2xl flex justify-between items-center shadow-sm">
-                             <div className="text-sm font-medium text-slate-600">總額未滿 ¥5500</div>
-                             <div className="text-base font-bold text-indigo-600">× 0.24</div>
-                         </div>
+                         <div className="bg-white p-4 rounded-2xl flex justify-between items-center shadow-sm"><div className="text-sm font-medium text-slate-600">總額滿 <span className="font-bold text-slate-900">¥5500</span></div><div className="text-base font-bold text-indigo-600">× 0.23</div></div>
+                         <div className="bg-white p-4 rounded-2xl flex justify-between items-center shadow-sm"><div className="text-sm font-medium text-slate-600">總額未滿 ¥5500</div><div className="text-base font-bold text-indigo-600">× 0.24</div></div>
                      </div>
                  </div>
              </div>
@@ -383,28 +340,12 @@ const BuyerForm: React.FC = () => {
           <label className="text-xs font-bold text-slate-400 uppercase tracking-widest px-2">常用通路快速點選</label>
           <div className="grid grid-cols-4 gap-3">
               {CATEGORIES.map(cat => (
-                  <button 
-                    key={cat.name} 
-                    onClick={() => handleCategorySelect(cat)}
-                    className={`group flex flex-col items-center justify-center p-2 rounded-2xl border transition-all active:scale-95 h-28 ${shopInfo === cat.name ? 'bg-indigo-50 border-indigo-600 shadow-md ring-2 ring-indigo-600/10' : 'bg-white border-slate-100'}`}
-                  >
+                  <button key={cat.name} onClick={() => handleCategorySelect(cat)} className={`group flex flex-col items-center justify-center p-2 rounded-2xl border transition-all active:scale-95 h-28 ${shopInfo === cat.name ? 'bg-indigo-50 border-indigo-600 shadow-md ring-2 ring-indigo-600/10' : 'bg-white border-slate-100'}`}>
                       <div className="w-14 h-14 mb-2 flex items-center justify-center overflow-hidden rounded-xl bg-white shadow-sm border border-slate-50 group-active:scale-90 p-2 relative">
                         {!brokenImages[cat.name] ? (
-                          <img 
-                            src={cat.logo} 
-                            alt={cat.name} 
-                            className="max-w-full max-h-full object-contain"
-                            onError={() => {
-                              setBrokenImages(prev => ({ ...prev, [cat.name]: true }));
-                            }}
-                          />
+                          <img src={cat.logo} alt={cat.name} className="max-w-full max-h-full object-contain" onError={() => setBrokenImages(prev => ({ ...prev, [cat.name]: true }))} />
                         ) : (
-                          <div 
-                            className="w-full h-full flex items-center justify-center rounded-lg text-white font-black text-xl shadow-inner"
-                            style={{ backgroundColor: cat.fallbackColor }}
-                          >
-                            {cat.initial}
-                          </div>
+                          <div className="w-full h-full flex items-center justify-center rounded-lg text-white font-black text-xl shadow-inner" style={{ backgroundColor: cat.fallbackColor }}>{cat.initial}</div>
                         )}
                       </div>
                       <span className={`text-[9px] font-black text-center leading-tight tracking-tighter ${shopInfo === cat.name ? 'text-indigo-600' : 'text-slate-500'}`}>{cat.name}</span>
@@ -417,148 +358,54 @@ const BuyerForm: React.FC = () => {
             <label className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4 block">您的聯絡資料</label>
             <div className="relative">
               <User className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" size={18} />
-              <input
-                id="buyer-name-input"
-                type="text" value={buyerName}
-                onChange={(e) => setBuyerName(e.target.value)}
-                placeholder="請輸入您的暱稱 (方便團長對帳)"
-                className="w-full pl-12 pr-4 py-4 bg-slate-50 rounded-2xl outline-none font-semibold text-sm text-slate-800 focus:bg-white transition-colors"
-              />
+              <input id="buyer-name-input" type="text" value={buyerName} onChange={(e) => setBuyerName(e.target.value)} placeholder="請輸入您的暱稱 (方便團長對帳)" className="w-full pl-12 pr-4 py-4 bg-slate-50 rounded-2xl outline-none font-semibold text-sm text-slate-800 focus:bg-white transition-colors" />
             </div>
         </div>
 
         <div ref={formRef} className="bg-white rounded-[2.5rem] shadow-lg border border-slate-200 p-7 sm:p-9 space-y-7 relative">
-          {(isSending || isCompressing) && (
-              <div className="absolute inset-0 z-50 bg-white/90 backdrop-blur-sm flex flex-col items-center justify-center space-y-4">
-                <Loader2 size={32} className="text-indigo-600 animate-spin" />
-                <p className="text-sm font-bold text-slate-600">{isCompressing ? '處理圖片中...' : '處理中...'}</p>
-              </div>
-          )}
-          
+          {(isSending || isCompressing) && <div className="absolute inset-0 z-50 bg-white/90 backdrop-blur-sm flex flex-col items-center justify-center space-y-4"><Loader2 size={32} className="text-indigo-600 animate-spin" /><p className="text-sm font-bold text-slate-600">{isCompressing ? '處理圖片中...' : '處理中...'}</p></div>}
           <label className="text-xs font-bold text-slate-400 uppercase tracking-widest block">委託商品資訊</label>
-
           <div className="space-y-5">
               <div className="relative">
                   <ShoppingBag className="absolute left-4 top-4 text-slate-300" size={18} />
-                  <textarea
-                      id="product-name-input"
-                      value={productName}
-                      onChange={(e) => setProductName(e.target.value)}
-                      placeholder="請輸入商品名稱"
-                      rows={2}
-                      className="w-full pl-12 pr-4 py-4 bg-slate-50 rounded-2xl outline-none font-semibold text-sm text-slate-800 resize-none leading-relaxed focus:ring-2 focus:ring-indigo-100 transition-all focus:bg-white"
-                  />
+                  <textarea id="product-name-input" value={productName} onChange={(e) => setProductName(e.target.value)} placeholder="請輸入商品名稱" rows={2} className="w-full pl-12 pr-4 py-4 bg-slate-50 rounded-2xl outline-none font-semibold text-sm text-slate-800 resize-none focus:bg-white transition-all" />
               </div>
-
               <div className="relative">
                   <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" size={18} />
-                  <input
-                      type="text"
-                      value={shopInfo}
-                      onChange={(e) => setShopInfo(e.target.value)}
-                      placeholder="購買地點 (選填)"
-                      className="w-full pl-12 pr-4 py-4 bg-slate-50 rounded-2xl outline-none font-semibold text-sm text-slate-800 focus:bg-white"
-                  />
+                  <input type="text" value={shopInfo} onChange={(e) => setShopInfo(e.target.value)} placeholder="購買地點 (選填)" className="w-full pl-12 pr-4 py-4 bg-slate-50 rounded-2xl outline-none font-semibold text-sm text-slate-800 focus:bg-white" />
               </div>
-
-              {showLawAlert && (
-                  <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 flex gap-3 animate-slide-in">
-                      <AlertCircle className="text-amber-500 shrink-0" size={18} />
-                      <p className="text-[11px] font-bold text-amber-800 leading-relaxed">
-                          因應日本法規，感冒藥及止痛藥或其他人氣商品一人限定購買一個。
-                      </p>
-                  </div>
-              )}
-
-              {showShippingAlert && (
-                  <div className="bg-blue-50 border border-blue-200 rounded-2xl p-4 flex gap-3 animate-slide-in">
-                      <Info className="text-blue-500 shrink-0" size={18} />
-                      <p className="text-[11px] font-bold text-blue-800 leading-relaxed">
-                          大型商品家電或佔重佔空間商品以及液體商品價格另計。
-                      </p>
-                  </div>
-              )}
-
+              {showLawAlert && <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 flex gap-3 animate-slide-in"><AlertCircle className="text-amber-500 shrink-0" size={18} /><p className="text-[11px] font-bold text-amber-800 leading-relaxed">因應日本法規，感冒藥及止痛藥或其他人氣商品一人限定購買一個。</p></div>}
+              {showShippingAlert && <div className="bg-blue-50 border border-blue-200 rounded-2xl p-4 flex gap-3 animate-slide-in"><Info className="text-blue-500 shrink-0" size={18} /><p className="text-[11px] font-bold text-blue-800 leading-relaxed">大型商品家電或佔重佔空間商品以及液體商品價格另計。</p></div>}
               {isUniqloOrGu && (
                   <div className="bg-indigo-50/50 border border-indigo-100 rounded-[2rem] p-6 space-y-4 animate-slide-in">
-                      <div className="flex items-center gap-2 mb-2">
-                        <Star size={14} className="text-indigo-500 fill-indigo-500" />
-                        <span className="text-xs font-black text-indigo-700 uppercase tracking-wider">服飾細節規格</span>
+                      <div className="flex items-center gap-2 mb-2"><Star size={14} className="text-indigo-500 fill-indigo-500" /><span className="text-xs font-black text-indigo-700 uppercase tracking-wider">服飾細節規格</span></div>
+                      <div className="space-y-1">
+                          <label className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest ml-1">貨源碼 (6碼)</label>
+                          <input type="text" maxLength={6} value={itemCode} onChange={e => setItemCode(e.target.value)} placeholder="例如: 456789" className="w-full px-4 py-3 bg-white rounded-xl border border-indigo-100 focus:border-indigo-400" />
                       </div>
-                      
-                      <div className="grid grid-cols-1 gap-4">
-                          <div className="space-y-1">
-                              <label className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest ml-1">貨源碼 (6碼)</label>
-                              <input 
-                                type="text" maxLength={6} value={itemCode} onChange={e => setItemCode(e.target.value)} 
-                                placeholder="例如: 456789"
-                                className="w-full px-4 py-3 bg-white rounded-xl outline-none font-bold text-sm text-slate-800 border border-indigo-100 focus:border-indigo-400"
-                              />
-                          </div>
-                      </div>
-
                       <div className="grid grid-cols-2 gap-4">
-                          <div className="space-y-1">
-                              <label className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest ml-1">尺寸</label>
-                              <input 
-                                type="text" value={itemSize} onChange={e => setItemSize(e.target.value)} 
-                                placeholder="如: M, XL, 24"
-                                className="w-full px-4 py-3 bg-white rounded-xl outline-none font-bold text-sm text-slate-800 border border-indigo-100 focus:border-indigo-400"
-                              />
-                          </div>
-                          <div className="space-y-1">
-                              <label className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest ml-1">顏色</label>
-                              <input 
-                                type="text" value={itemColor} onChange={e => setItemColor(e.target.value)} 
-                                placeholder="如: 09 BLACK"
-                                className="w-full px-4 py-3 bg-white rounded-xl outline-none font-bold text-sm text-slate-800 border border-indigo-100 focus:border-indigo-400"
-                              />
-                          </div>
+                          <div className="space-y-1"><label className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest ml-1">尺寸</label><input type="text" value={itemSize} onChange={e => setItemSize(e.target.value)} placeholder="如: M, XL" className="w-full px-4 py-3 bg-white rounded-xl border border-indigo-100" /></div>
+                          <div className="space-y-1"><label className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest ml-1">顏色</label><input type="text" value={itemColor} onChange={e => setItemColor(e.target.value)} placeholder="如: 09 BLACK" className="w-full px-4 py-3 bg-white rounded-xl border border-indigo-100" /></div>
                       </div>
-
                       <div className="space-y-1">
                         <label className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest ml-1">系列</label>
-                        <select 
-                            value={itemGender} onChange={e => setItemGender(e.target.value)}
-                            className="w-full px-4 py-3 bg-white rounded-xl outline-none font-bold text-sm text-slate-800 border border-indigo-100 focus:border-indigo-400 appearance-none"
-                        >
-                            <option value="WOMEN">WOMEN</option>
-                            <option value="MEN">MEN</option>
-                            <option value="KIDS・TEEN">KIDS・TEEN</option>
-                        </select>
+                        <select value={itemGender} onChange={e => setItemGender(e.target.value)} className="w-full px-4 py-3 bg-white rounded-xl border border-indigo-100 appearance-none font-bold text-sm text-slate-800"><option value="WOMEN">WOMEN</option><option value="MEN">MEN</option><option value="KIDS・TEEN">KIDS・TEEN</option></select>
                       </div>
                   </div>
               )}
-
               <div className="flex gap-4">
                   <div className="flex-1">
                       {imageUrl ? (
-                        <div className="w-full h-36 rounded-2xl overflow-hidden border border-slate-100 relative group">
-                            <img src={imageUrl} className="w-full h-full object-cover" />
-                            <button onClick={() => setImageUrl('')} className="absolute top-2 right-2 bg-black/50 text-white p-1.5 rounded-full backdrop-blur-md"><X size={14} /></button>
-                        </div>
+                        <div className="w-full h-36 rounded-2xl overflow-hidden border border-slate-100 relative group"><img src={imageUrl} className="w-full h-full object-cover" /><button onClick={() => setImageUrl('')} className="absolute top-2 right-2 bg-black/50 text-white p-1.5 rounded-full backdrop-blur-md"><X size={14} /></button></div>
                       ) : (
-                        <button onClick={() => fileInputRef.current?.click()} className="w-full h-36 rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50 text-slate-400 flex flex-col items-center justify-center gap-2 group hover:bg-slate-100 transition-all">
-                            <ImageIcon size={24} />
-                            <span className="text-xs font-bold">上傳商品照</span>
-                        </button>
+                        <button onClick={() => fileInputRef.current?.click()} className="w-full h-36 rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50 text-slate-400 flex flex-col items-center justify-center gap-2 hover:bg-slate-100 transition-all"><ImageIcon size={24} /><span className="text-xs font-bold">上傳商品照</span></button>
                       )}
                       <input type="file" accept="image/*" onChange={handleFileChange} ref={fileInputRef} className="hidden" />
                   </div>
-                  <div className="w-32 flex flex-col items-center justify-center gap-2 bg-slate-50 rounded-2xl p-4 border border-transparent focus-within:border-indigo-100">
-                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">數量</label>
-                      <input type="number" min="1" value={qty} onChange={(e) => setQty(e.target.value)} className="w-full bg-transparent outline-none font-bold text-3xl text-center text-indigo-600" placeholder="1" />
-                  </div>
+                  <div className="w-32 flex flex-col items-center justify-center gap-2 bg-slate-50 rounded-2xl p-4 border border-transparent focus-within:border-indigo-100"><label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">數量</label><input type="number" min="1" value={qty} onChange={(e) => setQty(e.target.value)} className="w-full bg-transparent outline-none font-bold text-3xl text-center text-indigo-600" placeholder="1" /></div>
               </div>
-
-              <div className="relative">
-                  <MessageSquareText className="absolute left-4 top-4 text-slate-300" size={18} />
-                  <textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="額外備註 (選填)..." rows={2} className="w-full pl-12 pr-4 py-4 bg-slate-50 rounded-2xl outline-none font-medium text-sm text-slate-700 resize-none focus:bg-white" />
-              </div>
-
-              <button onClick={addToCart} className="w-full py-4 rounded-2xl font-bold text-sm border-2 border-indigo-600 text-indigo-600 hover:bg-indigo-50 flex items-center justify-center gap-2 transition-all active:scale-95">
-                  <Plus size={18} strokeWidth={2.5} /> 新增下一項商品
-              </button>
+              <div className="relative"><MessageSquareText className="absolute left-4 top-4 text-slate-300" size={18} /><textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="額外備註 (選填)..." rows={2} className="w-full pl-12 pr-4 py-4 bg-slate-50 rounded-2xl outline-none font-medium text-sm text-slate-700 resize-none focus:bg-white" /></div>
+              <button onClick={addToCart} className="w-full py-4 rounded-2xl font-bold text-sm border-2 border-indigo-600 text-indigo-600 hover:bg-indigo-50 flex items-center justify-center gap-2 transition-all active:scale-95"><Plus size={18} strokeWidth={2.5} /> 新增下一項商品</button>
           </div>
         </div>
           
@@ -568,14 +415,8 @@ const BuyerForm: React.FC = () => {
               <div className="space-y-3">
                   {cart.map((item) => (
                       <div key={item.id} className="bg-white p-4 rounded-3xl border border-slate-200 shadow-sm flex gap-4 relative group">
-                          <div className="w-16 h-16 bg-slate-50 rounded-2xl overflow-hidden shrink-0 border border-slate-100">
-                              {item.imageUrl ? <img src={item.imageUrl} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-slate-200"><ShoppingBag size={20}/></div>}
-                          </div>
-                          <div className="flex-1 min-w-0 pr-10">
-                              <h4 className="font-bold text-slate-800 text-sm truncate">{item.productName}</h4>
-                              <p className="text-[10px] text-slate-400 truncate font-medium">{item.shopInfo || '不限通路'}</p>
-                              <div className="mt-1"><span className="text-xs font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-lg">x{item.requestedQuantity}</span></div>
-                          </div>
+                          <div className="w-16 h-16 bg-slate-50 rounded-2xl overflow-hidden shrink-0 border border-slate-100">{item.imageUrl ? <img src={item.imageUrl} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-slate-200"><ShoppingBag size={20}/></div>}</div>
+                          <div className="flex-1 min-w-0 pr-10"><h4 className="font-bold text-slate-800 text-sm truncate">{item.productName}</h4><p className="text-[10px] text-slate-400 truncate font-medium">{item.shopInfo || '不限通路'}</p><div className="mt-1"><span className="text-xs font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-lg">x{item.requestedQuantity}</span></div></div>
                           <button onClick={() => removeFromCart(item.id)} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-300 hover:text-rose-500 p-2 transition-colors"><Trash2 size={18} /></button>
                       </div>
                   ))}
@@ -583,17 +424,8 @@ const BuyerForm: React.FC = () => {
            </div>
         )}
 
-        <div className="fixed bottom-6 left-5 right-5 z-40 max-w-xl mx-auto">
-           <button onClick={handleBatchSubmit} disabled={isSending || isCompressing || (cart.length === 0 && !productName)} className={`w-full py-5 rounded-[2rem] font-bold text-sm shadow-2xl flex items-center justify-center gap-3 transition-all text-white active:scale-95 disabled:opacity-50 ${submitMode === 'cloud' ? 'bg-indigo-600 shadow-indigo-100' : 'bg-slate-800 shadow-slate-300'}`}>
-              {submitMode === 'cloud' ? <CloudLightning size={20} /> : <Send size={20} />}
-              {cart.length > 0 ? `確認送出 ${cart.length + (productName ? 1 : 0)} 筆委託` : '確認並送出'}
-              <ChevronRight size={18} />
-            </button>
-        </div>
-        
-        <p className="text-center mt-10 text-[11px] text-slate-400 font-bold uppercase tracking-widest opacity-40">
-            Powered by Rento Smart Agent
-        </p>
+        <div className="fixed bottom-6 left-5 right-5 z-40 max-w-xl mx-auto"><button onClick={handleBatchSubmit} disabled={isSending || isCompressing || (cart.length === 0 && !productName)} className={`w-full py-5 rounded-[2rem] font-bold text-sm shadow-2xl flex items-center justify-center gap-3 transition-all text-white active:scale-95 disabled:opacity-50 ${submitMode === 'cloud' ? 'bg-indigo-600 shadow-indigo-100' : 'bg-slate-800 shadow-slate-300'}`}>{submitMode === 'cloud' ? <CloudLightning size={20} /> : <Send size={20} />}{cart.length > 0 ? `確認送出 ${cart.length + (productName ? 1 : 0)} 筆委託` : '確認並送出'}<ChevronRight size={18} /></button></div>
+        <p className="text-center mt-10 text-[11px] text-slate-400 font-bold uppercase tracking-widest opacity-40">Powered by Rento Smart Agent</p>
       </main>
     </div>
   );
