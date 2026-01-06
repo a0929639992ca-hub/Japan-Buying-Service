@@ -3,6 +3,7 @@ export interface OrderItem {
   buyerName: string;
   productName: string;
   imageUrl?: string; // Base64 encoded image data
+  shopInfo?: string; // Where to buy (optional)
   originalPriceJpy: number;
   requestedQuantity: number;
   purchasedQuantity: number;
