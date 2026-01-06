@@ -6,9 +6,9 @@ import OrderList from './components/OrderList.tsx';
 import AIAssistant from './components/AIAssistant.tsx';
 import BuyerForm from './components/BuyerForm.tsx';
 import { parseOrderFromText } from './services/geminiService.ts';
-import { initCloud, subscribeToInbox, encodeConfig, FirebaseConfig, removeOrderFromInbox } from './services/cloudService.ts';
+import { initCloud, subscribeToInbox, encodeConfig, FirebaseConfig, removeOrderFromInbox, updateStoreConfig, subscribeToConfig } from './services/cloudService.ts';
 import { COST_EXCHANGE_RATE } from './constants.ts';
-import { Search, Calculator as CalcIcon, Share2, Plus, ChevronUp, ChevronDown, ClipboardPaste, Zap, Loader2, Banknote, Bell, Inbox, X, Check, Cloud, Sun, Lock, TrendingUp } from 'lucide-react';
+import { Search, Calculator as CalcIcon, Share2, Plus, ChevronUp, ChevronDown, ClipboardPaste, Zap, Loader2, Banknote, Bell, Inbox, X, Check, Cloud, Sun, Lock, TrendingUp, Settings, Power, Eye, EyeOff } from 'lucide-react';
 
 // 硬寫入的 Firebase 設定
 const FIREBASE_CONFIG: FirebaseConfig = {
@@ -38,6 +38,7 @@ const App: React.FC = () => {
   const [isInboxOpen, setIsInboxOpen] = useState(false);
   const [isCalculatorOpen, setIsCalculatorOpen] = useState(false);
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const [isConfigOpen, setIsConfigOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [viewMode, setViewMode] = useState<'admin' | 'buyer'>('admin');
   const [isAISensing, setIsAISensing] = useState(false);
@@ -51,6 +52,10 @@ const App: React.FC = () => {
   });
   
   const [isCloudConnected, setIsCloudConnected] = useState(false);
+  const [formConfig, setFormConfig] = useState<{ isFormActive: boolean; deadline: string }>({
+    isFormActive: true,
+    deadline: '2026.01.29 23:00'
+  });
 
   const lastClipboardText = useRef<string>('');
   const inboxRef = useRef<HTMLDivElement>(null);
@@ -106,11 +111,9 @@ const App: React.FC = () => {
     }
   };
 
-  // 當 App 重新回到前景時，嘗試重新獲取 Wake Lock
   useEffect(() => {
     const handleVisibilityChange = async () => {
       if (document.visibilityState === 'visible' && isWakeLockActive) {
-         // 如果原本是開啟狀態，回來時嘗試重新鎖定
          try {
             const wakeLock = await (navigator as any).wakeLock.request('screen');
             wakeLockRef.current = wakeLock;
@@ -124,23 +127,16 @@ const App: React.FC = () => {
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
   }, [isWakeLockActive]);
 
-  // 1. 初始化雲端連線 (使用硬寫的 Config)
+  // 1. 初始化雲端連線
   useEffect(() => {
     const success = initCloud(FIREBASE_CONFIG);
     setIsCloudConnected(success);
     if (success) {
       // 訂閱雲端收件匣
-      const unsubscribe = subscribeToInbox(storeId, (newOrder) => {
-           // 檢查是否已存在 (避免重複)
+      const unsubscribeInbox = subscribeToInbox(storeId, (newOrder) => {
            setInboxItems(prev => {
               if (prev.some(p => p.id === newOrder.id) || orders.some(o => o.id === newOrder.id)) return prev;
-              
-              // --- 收到新訂單的效果 ---
-              
-              // 1. 播放音效
               try { new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3').play().catch(()=>{}); } catch(e){}
-              
-              // 2. 觸發系統通知 (如果已授權)
               if ('Notification' in window && Notification.permission === 'granted') {
                 try {
                     if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
@@ -150,15 +146,20 @@ const App: React.FC = () => {
                         tag: newOrder.id,
                         requireInteraction: true
                     });
-                } catch(e) {
-                    console.error("Notification trigger failed", e);
-                }
+                } catch(e) {}
               }
-
               return [newOrder, ...prev];
            });
       });
-      return () => unsubscribe(); // Cleanup
+      // 訂閱配置
+      const unsubscribeConfig = subscribeToConfig(storeId, (config) => {
+          setFormConfig(config);
+      });
+
+      return () => {
+          unsubscribeInbox();
+          unsubscribeConfig();
+      };
     }
   }, [storeId, orders]); 
 
@@ -181,15 +182,12 @@ const App: React.FC = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // 4. 持久化訂單 (增加錯誤處理防止崩潰)
+  // 4. 持久化訂單
   useEffect(() => {
     try {
       localStorage.setItem('sakura_orders', JSON.stringify(orders));
     } catch (e) {
       console.error("Storage Save Error:", e);
-      if (e instanceof DOMException && (e.name === 'QuotaExceededError' || e.name === 'NS_ERROR_DOM_QUOTA_REACHED')) {
-         alert("⚠️ 儲存空間已滿！\n\n您的訂單圖片可能過多，導致無法儲存新資料。\n建議您刪除一些舊的「已完成」訂單以釋放空間。");
-      }
     }
   }, [orders]);
 
@@ -207,8 +205,23 @@ const App: React.FC = () => {
 
     if (navigator.clipboard?.writeText) {
       navigator.clipboard.writeText(shareUrl);
-      alert(isCloudConnected ? '已複製「雲端直連」連結！買家填單後您會直接收到。' : '連線異常，請稍後再試。');
+      alert('已複製買家填單連結！');
     }
+  };
+
+  const handleToggleForm = async () => {
+      const newStatus = !formConfig.isFormActive;
+      setFormConfig(prev => ({ ...prev, isFormActive: newStatus }));
+      if (isCloudConnected) {
+          await updateStoreConfig(storeId, { ...formConfig, isFormActive: newStatus });
+      }
+  };
+
+  const handleUpdateDeadline = async (val: string) => {
+      setFormConfig(prev => ({ ...prev, deadline: val }));
+      if (isCloudConnected) {
+          await updateStoreConfig(storeId, { ...formConfig, deadline: val });
+      }
   };
 
   const parseImportData = (encodedData: string) => {
@@ -217,7 +230,6 @@ const App: React.FC = () => {
     } catch (e) { return null; }
   };
 
-  // 剪貼簿監聽
   const masterSensor = useCallback(async () => {
     if (isAISensing || !navigator.clipboard?.readText) return;
     try {
@@ -232,19 +244,16 @@ const App: React.FC = () => {
         if (data) {
            const incomingItems = Array.isArray(data) ? data : [data];
            let addedCount = 0;
-
            setInboxItems(prev => {
               const uniqueItems = incomingItems.filter((newItem: OrderItem) => 
                  !prev.some(p => p.id === newItem.id) && !orders.some(o => o.id === newItem.id)
               );
-              
               if (uniqueItems.length > 0) {
                   addedCount = uniqueItems.length;
                   return [...uniqueItems, ...prev];
               }
               return prev;
            });
-
            if (addedCount > 0) {
                try { new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3').play().catch(()=>{}); } catch(e){}
                setIsInboxOpen(true);
@@ -266,9 +275,7 @@ const App: React.FC = () => {
   // --- UI 處理 ---
 
   const handleUpdateOrder = (id: string, updates: Partial<OrderItem>) => {
-    setOrders(prev => prev.map(order => 
-      order.id === id ? { ...order, ...updates } : order
-    ));
+    setOrders(prev => prev.map(order => order.id === id ? { ...order, ...updates } : order));
   };
 
   const handleAcceptInboxItem = (item: OrderItem) => {
@@ -284,25 +291,16 @@ const App: React.FC = () => {
         isPaid: !!item.isPaid,
         id: item.id || `cloud-${Date.now()}`
     };
-
     setOrders(prev => [safeItem, ...prev]);
     setInboxItems(prev => prev.filter(i => i.id !== item.id)); 
     if (inboxItems.length <= 1) setIsInboxOpen(false);
-
-    // 關鍵修正：接收後，從雲端刪除該項目，避免下次重整又出現
-    if (isCloudConnected) {
-       removeOrderFromInbox(storeId, item.id);
-    }
+    if (isCloudConnected) removeOrderFromInbox(storeId, item.id);
   };
 
   const handleRejectInboxItem = (id: string) => {
     setInboxItems(prev => prev.filter(i => i.id !== id));
     if (inboxItems.length <= 1) setIsInboxOpen(false);
-    
-    // 關鍵修正：忽略後，從雲端刪除該項目，避免下次重整又出現
-    if (isCloudConnected) {
-       removeOrderFromInbox(storeId, id);
-    }
+    if (isCloudConnected) removeOrderFromInbox(storeId, id);
   };
 
   const stats = useMemo(() => {
@@ -310,23 +308,14 @@ const App: React.FC = () => {
     let totalTwd = 0;
     let totalPaid = 0;
     let totalProfit = 0;
-
     orders.forEach(order => {
-        // 1. 預算 (JPY): 使用請求數量
         totalJpy += (order.originalPriceJpy * order.requestedQuantity);
-        
-        // 2. 應收 (TWD) & 實收 (Paid)
         totalTwd += order.calculatedPrice;
         if (order.isPaid) totalPaid += order.calculatedPrice;
-
-        // 3. 淨賺 (Profit): 應收 - (日幣價格 * 有效數量 * 成本匯率)
-        // 有效數量: 若是 Pending 則用請求數量(預估)，若是已採購則用實際採購數量
         const effectiveQty = order.status === OrderStatus.PENDING ? order.requestedQuantity : order.purchasedQuantity;
         const costTwd = Math.ceil(order.originalPriceJpy * effectiveQty * COST_EXCHANGE_RATE);
-        const profit = order.calculatedPrice - costTwd;
-        totalProfit += profit;
+        totalProfit += (order.calculatedPrice - costTwd);
     });
-
     return { jpy: totalJpy, twd: totalTwd, paid: totalPaid, profit: totalProfit };
   }, [orders]);
 
@@ -339,8 +328,6 @@ const App: React.FC = () => {
     );
   }, [orders, searchQuery]);
 
-  // --- Render ---
-
   if (viewMode === 'buyer') return <BuyerForm />;
 
   return (
@@ -352,44 +339,33 @@ const App: React.FC = () => {
             <div className="relative">
                 <div className={`absolute inset-0 bg-indigo-500 rounded-2xl blur-md opacity-20 ${isAISensing ? 'animate-pulse scale-150' : ''}`}></div>
                 <div className="relative bg-slate-900 p-2.5 rounded-2xl text-amber-400 ring-1 ring-slate-800 shadow-xl">
-                  {isAISensing ? <Loader2 size={20} className="animate-spin" /> : <RentoLogo className="w-5 h-5" />}
+                  <RentoLogo className="w-5 h-5" />
                 </div>
             </div>
             <div className="flex flex-col">
               <h1 className="text-xl font-black tracking-tighter text-slate-900">Rento <span className="text-indigo-600">Smart</span></h1>
               <div className="flex items-center gap-1.5 mt-1">
                  {isCloudConnected ? (
-                    <>
-                        <span className="flex h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                        <span className="text-[9px] font-black text-emerald-600 uppercase tracking-widest">Cloud Active</span>
-                    </>
+                    <span className="text-[9px] font-black text-emerald-600 uppercase tracking-widest">Cloud Sync Active</span>
                  ) : (
-                    <>
-                        <span className="flex h-1.5 w-1.5 rounded-full bg-slate-300"></span>
-                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Local Mode</span>
-                    </>
+                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Local Mode</span>
                  )}
               </div>
             </div>
           </div>
           
           <div className="flex items-center gap-2">
-            {/* Wake Lock Button */}
             <button 
                 onClick={toggleWakeLock}
-                className={`p-3 rounded-2xl transition-all shadow-sm active:scale-90 ${isWakeLockActive ? 'bg-amber-400 text-slate-900 shadow-amber-200' : 'bg-white border border-slate-200 text-slate-400 hover:text-amber-500'}`}
-                title={isWakeLockActive ? "螢幕保持開啟中" : "啟用螢幕保持開啟"}
+                className={`p-3 rounded-2xl transition-all shadow-sm active:scale-90 ${isWakeLockActive ? 'bg-amber-400 text-slate-900' : 'bg-white border border-slate-200 text-slate-400'}`}
             >
                 {isWakeLockActive ? <Sun size={18} fill="currentColor" /> : <Lock size={18} />}
             </button>
 
             <div className="relative" ref={inboxRef}>
                 <button 
-                    onClick={() => {
-                        setIsInboxOpen(!isInboxOpen);
-                        requestNotificationPermission(); // 點擊收件匣時順便請求權限
-                    }}
-                    className={`p-3 rounded-2xl transition-all shadow-sm active:scale-90 relative ${inboxItems.length > 0 ? 'bg-indigo-600 text-white shadow-indigo-200' : 'bg-white border border-slate-200 text-slate-400 hover:text-indigo-600'}`}
+                    onClick={() => { setIsInboxOpen(!isInboxOpen); requestNotificationPermission(); }}
+                    className={`p-3 rounded-2xl transition-all shadow-sm active:scale-90 relative ${inboxItems.length > 0 ? 'bg-indigo-600 text-white shadow-indigo-200' : 'bg-white border border-slate-200 text-slate-400'}`}
                 >
                     <Bell size={18} fill={inboxItems.length > 0 ? "currentColor" : "none"} />
                     {inboxItems.length > 0 && (
@@ -401,24 +377,17 @@ const App: React.FC = () => {
                 {isInboxOpen && (
                     <div className="fixed top-24 left-4 right-4 w-auto sm:absolute sm:top-full sm:right-0 sm:left-auto sm:w-96 sm:mt-3 bg-white rounded-[2rem] shadow-2xl border border-slate-100 overflow-hidden animate-slide-in origin-top sm:origin-top-right z-50">
                         <div className="p-4 border-b border-slate-100 bg-slate-50/50 flex justify-between items-center">
-                            <div className="flex items-center gap-2 text-slate-800">
-                                <Inbox size={16} />
-                                <span className="text-sm font-black">收件匣</span>
-                            </div>
-                            <span className="text-[10px] bg-slate-200 text-slate-500 px-2 py-0.5 rounded-full font-bold">{inboxItems.length}</span>
+                            <span className="text-sm font-black text-slate-800">新委託收件匣</span>
                         </div>
                         <div className="max-h-[60vh] overflow-y-auto p-2 space-y-2">
                             {inboxItems.length === 0 ? (
-                                <div className="py-8 text-center text-slate-400">
-                                    <p className="text-xs">目前沒有新委託</p>
-                                    <p className="text-[10px] text-slate-300 mt-2">點擊上方鈴鐺可開啟通知權限</p>
-                                </div>
+                                <div className="py-8 text-center text-slate-400 text-xs">目前沒有新委託</div>
                             ) : (
                                 inboxItems.map(item => (
                                     <div key={item.id} className="bg-white p-3 rounded-2xl border border-slate-100 shadow-sm flex flex-col gap-3">
                                         <div className="flex gap-3">
-                                            <div className="w-12 h-12 bg-slate-50 rounded-xl shrink-0 overflow-hidden">
-                                                {item.imageUrl ? <img src={item.imageUrl} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-slate-300"><Inbox size={16}/></div>}
+                                            <div className="w-12 h-12 bg-slate-50 rounded-xl overflow-hidden shrink-0">
+                                                {item.imageUrl ? <img src={item.imageUrl} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-slate-200"><Inbox size={16}/></div>}
                                             </div>
                                             <div className="flex-1 min-w-0">
                                                 <h4 className="font-bold text-sm text-slate-800 truncate">{item.productName}</h4>
@@ -427,7 +396,7 @@ const App: React.FC = () => {
                                         </div>
                                         <div className="flex gap-2">
                                             <button onClick={() => handleRejectInboxItem(item.id)} className="flex-1 py-2 text-xs font-bold text-slate-400 bg-slate-50 rounded-xl">忽略</button>
-                                            <button onClick={() => handleAcceptInboxItem(item)} className="flex-1 py-2 text-xs font-bold text-white bg-indigo-600 rounded-xl shadow-sm shadow-indigo-200">接收</button>
+                                            <button onClick={() => handleAcceptInboxItem(item)} className="flex-1 py-2 text-xs font-bold text-white bg-indigo-600 rounded-xl">接收</button>
                                         </div>
                                     </div>
                                 ))
@@ -437,42 +406,72 @@ const App: React.FC = () => {
                 )}
             </div>
 
-            <button onClick={() => setIsCalculatorOpen(true)} className="p-3 bg-white border border-slate-200 rounded-2xl text-slate-400 hover:text-indigo-600 transition-all shadow-sm active:scale-90">
+            <button onClick={() => setIsCalculatorOpen(true)} className="p-3 bg-white border border-slate-200 rounded-2xl text-slate-400 active:scale-90 shadow-sm">
               <CalcIcon size={18} />
             </button>
-            <button onClick={handleShareLink} className="px-5 py-3 bg-indigo-600 text-white rounded-2xl text-xs font-black shadow-lg shadow-indigo-200 flex items-center gap-2 active:scale-95">
+            <button onClick={handleShareLink} className="px-5 py-3 bg-indigo-600 text-white rounded-2xl text-xs font-black shadow-lg shadow-indigo-200 active:scale-95 flex items-center gap-2">
               <Share2 size={14} strokeWidth={3} />
-              <span className="hidden sm:inline">發送連結</span>
+              <span className="hidden sm:inline">連結</span>
             </button>
           </div>
         </div>
       </header>
 
       <main className="max-w-5xl mx-auto px-5 py-8 space-y-8">
+        {/* 表單控制區 */}
+        <div className="bg-white p-6 rounded-[2rem] border border-slate-200 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-6">
+            <div className="flex items-center gap-4">
+                <div className={`p-3 rounded-2xl ${formConfig.isFormActive ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'}`}>
+                    {formConfig.isFormActive ? <Eye size={20}/> : <EyeOff size={20}/>}
+                </div>
+                <div>
+                    <h3 className="text-sm font-black text-slate-800">買家委託表單狀態</h3>
+                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">
+                        {formConfig.isFormActive ? '開放中 - 買家可填單' : '已關閉 - 買家無法填單'}
+                    </p>
+                </div>
+            </div>
+            
+            <div className="flex items-center gap-3">
+                <div className="flex flex-col gap-1">
+                    <span className="text-[9px] font-black text-slate-300 uppercase tracking-widest ml-1">截單時間設定</span>
+                    <input 
+                        type="text" 
+                        value={formConfig.deadline} 
+                        onChange={(e) => handleUpdateDeadline(e.target.value)}
+                        className="bg-slate-50 border border-slate-100 rounded-xl px-4 py-2 text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-indigo-100 w-44"
+                    />
+                </div>
+                <button 
+                    onClick={handleToggleForm}
+                    className={`px-6 py-3 rounded-2xl font-black text-xs transition-all shadow-sm active:scale-95 flex items-center gap-2 ${formConfig.isFormActive ? 'bg-rose-500 text-white shadow-rose-200' : 'bg-emerald-500 text-white shadow-emerald-200'}`}
+                >
+                    <Power size={14} />
+                    {formConfig.isFormActive ? '關閉表單' : '重啟表單'}
+                </button>
+            </div>
+        </div>
+
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <div className="bg-white p-6 rounded-[2rem] border border-slate-200 shadow-sm">
-            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 flex items-center gap-1.5">
-                <Banknote size={12} strokeWidth={3} /> 採購預算
-            </p>
+            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 flex items-center gap-1.5"><Banknote size={12} /> 採購預算</p>
             <p className="text-2xl font-black text-slate-900">¥ {stats.jpy.toLocaleString()}</p>
           </div>
           <div className="bg-white p-6 rounded-[2rem] border border-slate-200 shadow-sm">
             <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">應收總計</p>
             <p className="text-2xl font-black text-slate-900">NT$ {stats.twd.toLocaleString()}</p>
           </div>
-          <div className="bg-emerald-500 p-6 rounded-[2rem] border border-emerald-400 shadow-xl shadow-emerald-500/10">
+          <div className="bg-emerald-500 p-6 rounded-[2rem] shadow-xl shadow-emerald-500/10">
             <p className="text-[10px] font-black text-emerald-100 uppercase tracking-widest mb-2">實收進帳</p>
             <p className="text-2xl font-black text-white">NT$ {stats.paid.toLocaleString()}</p>
           </div>
-          <div className="bg-amber-400 p-6 rounded-[2rem] border border-amber-300 shadow-xl shadow-amber-400/20">
-            <p className="text-[10px] font-black text-amber-900/60 uppercase tracking-widest mb-2 flex items-center gap-1.5">
-                <TrendingUp size={12} strokeWidth={3} /> 預估淨賺
-            </p>
+          <div className="bg-amber-400 p-6 rounded-[2rem] shadow-xl shadow-amber-400/20">
+            <p className="text-[10px] font-black text-amber-900/60 uppercase tracking-widest mb-2 flex items-center gap-1.5"><TrendingUp size={12}/> 預估淨賺</p>
             <p className="text-2xl font-black text-amber-900">NT$ {stats.profit.toLocaleString()}</p>
           </div>
         </div>
 
-        <button onClick={() => setIsFormOpen(!isFormOpen)} className="w-full bg-white px-8 py-6 rounded-[2rem] border border-slate-200 shadow-sm flex items-center justify-between group transition-all hover:border-indigo-200">
+        <button onClick={() => setIsFormOpen(!isFormOpen)} className="w-full bg-white px-8 py-6 rounded-[2rem] border border-slate-200 shadow-sm flex items-center justify-between transition-all hover:border-indigo-200 group">
           <div className="flex items-center gap-4">
             <div className={`p-2 rounded-xl transition-all ${isFormOpen ? 'bg-indigo-100 text-indigo-600 rotate-45' : 'bg-slate-100 text-slate-600'}`}>
               <Plus size={22} strokeWidth={3} />
@@ -503,16 +502,6 @@ const App: React.FC = () => {
         </div>
 
         <OrderList orders={filteredOrders} onRemoveOrder={(id) => { if(confirm('刪除?')) setOrders(p => p.filter(o => o.id !== id)); }} onUpdateOrder={handleUpdateOrder} />
-        
-        {!isCloudConnected && (
-            <div className="py-12 text-center space-y-4">
-                <div className="w-12 h-1 bg-slate-200 rounded-full mx-auto"></div>
-                <p className="text-[10px] text-slate-400 font-black uppercase tracking-[0.3em]">手動同步模式</p>
-                <p className="text-xs text-slate-300 max-w-xs mx-auto leading-relaxed px-6">
-                    目前尚未連線至 Firebase。買家填單後需手動複製代碼傳送給您。
-                </p>
-            </div>
-        )}
       </main>
 
       <Calculator isOpen={isCalculatorOpen} onClose={() => setIsCalculatorOpen(false)} />

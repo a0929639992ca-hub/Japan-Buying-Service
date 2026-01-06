@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Send, ShoppingBag, User, Image as ImageIcon, CheckCircle2, MessageSquareText, Copy, Plus, Loader2, Info, CloudLightning, Link2, X, Trash2, Layers, Calendar, Star, Store, Ban, ChevronRight } from 'lucide-react';
+import { Send, ShoppingBag, User, Image as ImageIcon, CheckCircle2, MessageSquareText, Copy, Plus, Loader2, Info, CloudLightning, Link2, X, Trash2, Layers, Calendar, Star, Store, Ban, ChevronRight, Lock } from 'lucide-react';
 import { OrderStatus, OrderItem } from '../types.ts';
-import { decodeConfig, initCloud, sendOrderToCloud } from '../services/cloudService.ts';
+import { decodeConfig, initCloud, sendOrderToCloud, subscribeToConfig } from '../services/cloudService.ts';
 
 // 圖片壓縮函式
 const compressImage = (file: File): Promise<string> => {
@@ -67,6 +67,12 @@ const BuyerForm: React.FC = () => {
   const [cloudStoreId, setCloudStoreId] = useState<string>('');
   const [generatedMessage, setGeneratedMessage] = useState('');
 
+  // 表單狀態
+  const [formConfig, setFormConfig] = useState<{ isFormActive: boolean; deadline: string }>({
+    isFormActive: true,
+    deadline: '2026.01.29 23:00'
+  });
+
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -79,6 +85,11 @@ const BuyerForm: React.FC = () => {
         if (success) {
           setSubmitMode('cloud');
           setCloudStoreId(decoded.storeId);
+          // 監聽後台設定
+          const unsubscribe = subscribeToConfig(decoded.storeId, (config) => {
+             setFormConfig(config);
+          });
+          return () => unsubscribe();
         }
       }
     }
@@ -101,8 +112,12 @@ const BuyerForm: React.FC = () => {
   };
 
   const addToCart = () => {
-    if (!productName || !qty || parseInt(qty) <= 0) {
-        alert("請填寫商品名稱與正確數量");
+    if (!productName) {
+        alert("請輸入商品名稱");
+        return;
+    }
+    if (!qty || parseInt(qty) <= 0) {
+        alert("請輸入數量");
         return;
     }
     
@@ -138,13 +153,19 @@ const BuyerForm: React.FC = () => {
   };
 
   const handleBatchSubmit = async () => {
-    if (cart.length === 0 && (!productName || !qty)) {
-        alert("請先加入至少一項商品");
+    if (!buyerName) {
+        alert("請填寫您的暱稱");
         return;
     }
 
-    if (!buyerName) {
-        alert("請填寫您的暱稱");
+    // 檢查目前輸入框是否正在輸入商品但忘了填數量
+    if (productName && !qty) {
+        alert("請輸入數量");
+        return;
+    }
+
+    if (cart.length === 0 && !productName) {
+        alert("請先加入至少一項商品");
         return;
     }
 
@@ -254,6 +275,28 @@ const BuyerForm: React.FC = () => {
     );
   }
 
+  // 檢查表單是否關閉
+  if (!formConfig.isFormActive) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-8 font-sans text-center">
+         <div className="max-w-md w-full space-y-6 animate-slide-in">
+            <div className="w-20 h-20 bg-slate-200 text-slate-400 rounded-full flex items-center justify-center mx-auto">
+               <Lock size={32} />
+            </div>
+            <h2 className="text-2xl font-black text-slate-800">代購表單目前關閉中</h2>
+            <p className="text-sm text-slate-500 font-medium leading-relaxed">
+               抱歉，目前已暫停收單或是未開放委託。<br/>
+               請關注團長通知，謝謝您的配合！
+            </p>
+            <div className="bg-white p-6 rounded-3xl border border-slate-200">
+               <span className="text-xs font-black text-slate-400 uppercase tracking-widest block mb-1">原定截單時間</span>
+               <span className="text-lg font-bold text-slate-900">{formConfig.deadline}</span>
+            </div>
+         </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-slate-50 pb-20 font-sans">
       <header className="bg-white border-b border-slate-100 sticky top-0 z-40">
@@ -288,6 +331,7 @@ const BuyerForm: React.FC = () => {
                          <span>115.01.27 - 01.29</span>
                      </div>
                      <p className="text-sm text-slate-400 mt-2 font-medium">希望能補貼一點旅費，歡迎各位委託 ❤️</p>
+                     <p className="text-[10px] text-indigo-400 font-black mt-2 uppercase tracking-widest">截單時間：{formConfig.deadline}</p>
                  </div>
 
                  <div className="bg-slate-50 p-5 rounded-3xl border border-slate-100 space-y-4">
@@ -417,11 +461,11 @@ const BuyerForm: React.FC = () => {
                   <button
                       type="button"
                       onClick={addToCart}
-                      disabled={isSending || isCompressing || !productName || !qty}
+                      disabled={isSending || isCompressing || !productName}
                       className="w-full py-4 rounded-2xl font-bold text-sm border-2 border-indigo-600 text-indigo-600 hover:bg-indigo-50 flex items-center justify-center gap-2 transition-all disabled:opacity-30"
                   >
                       <Plus size={18} strokeWidth={2.5} />
-                      加入委託清單
+                      新增下一項商品
                   </button>
               </div>
           </div>

@@ -1,5 +1,5 @@
 import { initializeApp, getApps, getApp } from 'firebase/app';
-import { getDatabase, ref, onValue, push, set, remove, serverTimestamp } from 'firebase/database';
+import { getDatabase, ref, onValue, push, set, remove, serverTimestamp, update } from 'firebase/database';
 import { OrderItem } from '../types.ts';
 
 // 定義 Firebase 設定介面
@@ -48,7 +48,6 @@ export const sendOrderToCloud = async (storeId: string, order: OrderItem) => {
 // 系統：從雲端收件匣移除訂單 (接收或拒絕後使用)
 export const removeOrderFromInbox = async (storeId: string, orderId: string) => {
   if (!db) return;
-  // 確保路徑正確，直接刪除該 ID 的節點
   const orderRef = ref(db, `stores/${storeId}/inbox/${orderId}`);
   try {
     await remove(orderRef);
@@ -74,6 +73,25 @@ export const subscribeToInbox = (storeId: string, callback: (order: OrderItem) =
   });
 
   return unsubscribe;
+};
+
+// 團長：更新表單狀態與截單日
+export const updateStoreConfig = async (storeId: string, config: { isFormActive: boolean, deadline: string }) => {
+  if (!db) return;
+  const configRef = ref(db, `stores/${storeId}/config`);
+  await update(configRef, config);
+};
+
+// 監聽表單設定
+export const subscribeToConfig = (storeId: string, callback: (config: { isFormActive: boolean, deadline: string }) => void) => {
+  if (!db) return () => {};
+  const configRef = ref(db, `stores/${storeId}/config`);
+  return onValue(configRef, (snapshot) => {
+    const data = snapshot.val();
+    if (data) {
+      callback(data);
+    }
+  });
 };
 
 // 輔助：將設定檔編碼到 URL (給買家連結用)
