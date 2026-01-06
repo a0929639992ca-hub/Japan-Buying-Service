@@ -44,7 +44,7 @@ const compressImage = (file: File): Promise<string> => {
   });
 };
 
-// 品牌資料與穩定的 Logo 來源
+// 品牌資料與穩定的 Logo 來源 (優先使用帶 www 的網域以利解析)
 const CATEGORIES = [
   { 
     name: 'UNIQLO', 
@@ -54,7 +54,7 @@ const CATEGORIES = [
   },
   { 
     name: 'GU', 
-    logo: 'https://www.google.com/s2/favicons?sz=128&domain=www.gu-global.com', 
+    logo: 'https://www.google.com/s2/favicons?sz=128&domain=www.gu-japan.com', 
     fallbackColor: '#0026a3',
     initial: 'G'
   },
@@ -104,7 +104,6 @@ const BuyerForm: React.FC = () => {
   const [qty, setQty] = useState('');
   const [imageUrl, setImageUrl] = useState('');
   
-  // 追蹤哪些圖片載入失敗了
   const [brokenImages, setBrokenImages] = useState<Record<string, boolean>>({});
 
   const [itemCode, setItemCode] = useState('');
@@ -146,7 +145,26 @@ const BuyerForm: React.FC = () => {
 
   const handleCategorySelect = (cat: typeof CATEGORIES[0]) => {
     setShopInfo(cat.name);
-    formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    
+    // 解決捲動過頭或不足的問題
+    setTimeout(() => {
+      const element = formRef.current;
+      if (element) {
+        // 考慮到上方 Sticky Header (約 80px) 的高度
+        const headerOffset = 85; 
+        const elementPosition = element.getBoundingClientRect().top;
+        const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
+
+        window.scrollTo({
+          top: offsetPosition,
+          behavior: 'smooth'
+        });
+        
+        // 自動聚焦商品名稱，提升填寫效率
+        const input = document.getElementById('product-name-input');
+        if (input) input.focus();
+      }
+    }, 100);
   };
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -376,9 +394,6 @@ const BuyerForm: React.FC = () => {
                             src={cat.logo} 
                             alt={cat.name} 
                             className="max-w-full max-h-full object-contain"
-                            onLoad={() => {
-                                // 確保圖片不是空白或 1x1 像數
-                            }}
                             onError={() => {
                               setBrokenImages(prev => ({ ...prev, [cat.name]: true }));
                             }}
@@ -430,7 +445,7 @@ const BuyerForm: React.FC = () => {
                       onChange={(e) => setProductName(e.target.value)}
                       placeholder="請輸入商品名稱"
                       rows={2}
-                      className="w-full pl-12 pr-4 py-4 bg-slate-50 rounded-2xl outline-none font-semibold text-sm text-slate-800 resize-none leading-relaxed"
+                      className="w-full pl-12 pr-4 py-4 bg-slate-50 rounded-2xl outline-none font-semibold text-sm text-slate-800 resize-none leading-relaxed focus:ring-2 focus:ring-indigo-100 transition-all"
                   />
               </div>
 
