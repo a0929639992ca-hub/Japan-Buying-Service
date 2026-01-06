@@ -15,7 +15,20 @@ export interface FirebaseConfig {
 
 let db: any = null;
 
-// 初始化連線 (支援從 LocalStorage 或 URL 參數載入設定)
+// 清理物件中的 undefined 值，Firebase 不接受 undefined
+const sanitizeForFirebase = (obj: any): any => {
+  const clean = { ...obj };
+  Object.keys(clean).forEach(key => {
+    if (clean[key] === undefined) {
+      delete clean[key]; // 或者設為 null: clean[key] = null;
+    } else if (typeof clean[key] === 'object' && clean[key] !== null && !Array.isArray(clean[key])) {
+      clean[key] = sanitizeForFirebase(clean[key]);
+    }
+  });
+  return clean;
+};
+
+// 初始化連線
 export const initCloud = (config: FirebaseConfig) => {
   try {
     if (!getApps().length) {
@@ -38,14 +51,18 @@ export const sendOrderToCloud = async (storeId: string, order: OrderItem) => {
   
   const ordersRef = ref(db, `stores/${storeId}/inbox`);
   const newOrderRef = push(ordersRef);
+  
+  // 確保資料中沒有 undefined 屬性，避免傳送失敗
+  const sanitizedOrder = sanitizeForFirebase(order);
+  
   await set(newOrderRef, {
-    ...order,
+    ...sanitizedOrder,
     _cloudTimestamp: serverTimestamp()
   });
   return true;
 };
 
-// 系統：從雲端收件匣移除訂單 (接收或拒絕後使用)
+// 系統：從雲端收件匣移除訂單
 export const removeOrderFromInbox = async (storeId: string, orderId: string) => {
   if (!db) return;
   const orderRef = ref(db, `stores/${storeId}/inbox/${orderId}`);
@@ -66,7 +83,7 @@ export const subscribeToInbox = (storeId: string, callback: (order: OrderItem) =
     const data = snapshot.val();
     if (data) {
       Object.keys(data).forEach(key => {
-        const order = { ...data[key], id: key }; // 使用 Firebase Key 作為 ID
+        const order = { ...data[key], id: key }; 
         callback(order);
       });
     }
@@ -94,7 +111,7 @@ export const subscribeToConfig = (storeId: string, callback: (config: { isFormAc
   });
 };
 
-// 輔助：將設定檔編碼到 URL (給買家連結用)
+// 輔助：將設定檔編碼到 URL
 export const encodeConfig = (config: FirebaseConfig, storeId: string): string => {
   const payload = JSON.stringify({ c: config, s: storeId });
   return btoa(payload);

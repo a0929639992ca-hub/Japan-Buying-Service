@@ -47,17 +47,17 @@ const compressImage = (file: File): Promise<string> => {
 const CATEGORIES = [
   { 
     name: 'UNIQLO', 
-    logo: 'https://www.google.com/s2/favicons?sz=128&domain=www.uniqlo.com', 
+    logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/9/92/UNIQLO_logo.svg/512px-UNIQLO_logo.svg.png', 
     type: 'uniqlo' 
   },
   { 
     name: 'GU', 
-    logo: 'https://www.google.com/s2/favicons?sz=128&domain=www.gu-global.com', 
+    logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/c/cc/GU_logo.svg/512px-GU_logo.svg.png', 
     type: 'uniqlo' 
   },
   { 
     name: 'MUJI', 
-    logo: 'https://www.google.com/s2/favicons?sz=128&domain=www.muji.com', 
+    logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/c/ce/Muji_logo.svg/512px-Muji_logo.svg.png', 
     type: 'shipping_alert' 
   },
   { 
@@ -82,7 +82,7 @@ const CATEGORIES = [
   },
   { 
     name: '伴手禮', 
-    logo: 'https://cdn-icons-png.flaticon.com/512/3130/3130310.png', 
+    logo: 'https://cdn-icons-png.flaticon.com/512/10043/10043477.png', // 更可愛的禮物圖示
     type: 'normal' 
   },
 ];
@@ -172,19 +172,20 @@ const BuyerForm: React.FC = () => {
         finalNotes = `[${itemGender}] 貨源碼:${itemCode} / 尺寸:${itemSize || '未填'} / 顏色:${itemColor || '未填'} \n${notes}`;
     }
     
+    // 這裡使用 null 替代 undefined 以適應 Firebase
     const newItem: OrderItem = {
       id: `EXT-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
       buyerName: buyerName || '未知買家',
       productName,
-      shopInfo,
-      imageUrl: imageUrl || undefined,
+      shopInfo: shopInfo || '',
+      imageUrl: imageUrl || '',
       originalPriceJpy: 0,
       requestedQuantity: parseInt(qty),
       purchasedQuantity: 0,
       calculatedPrice: 0,
       status: OrderStatus.PENDING,
       isPaid: false,
-      notes: finalNotes,
+      notes: finalNotes || '',
       createdAt: Date.now(),
     };
 
@@ -210,41 +211,54 @@ const BuyerForm: React.FC = () => {
 
     setIsSending(true);
     let finalCart = [...cart];
+    
+    // 如果輸入框還有內容，也一起加入
     if (productName && qty && parseInt(qty) > 0) {
          let currentFinalNotes = notes;
          if (shopInfo === 'UNIQLO' || shopInfo === 'GU') {
-            currentFinalNotes = `[${itemGender}] 貨源碼:${itemCode} / 尺寸:${itemSize} / 顏色:${itemColor} \n${notes}`;
+            currentFinalNotes = `[${itemGender}] 貨源碼:${itemCode} / 尺寸:${itemSize || '未填'} / 顏色:${itemColor || '未填'} \n${notes}`;
          }
          finalCart.push({
             id: `EXT-${Date.now()}`,
             buyerName,
             productName,
-            shopInfo,
-            imageUrl: imageUrl || undefined,
+            shopInfo: shopInfo || '',
+            imageUrl: imageUrl || '',
             originalPriceJpy: 0,
             requestedQuantity: parseInt(qty),
             purchasedQuantity: 0,
             calculatedPrice: 0,
             status: OrderStatus.PENDING,
             isPaid: false,
-            notes: currentFinalNotes,
+            notes: currentFinalNotes || '',
             createdAt: Date.now(),
          });
     }
     
     try {
         if (submitMode === 'cloud') {
+            // 發送到雲端
             await Promise.all(finalCart.map(order => sendOrderToCloud(cloudStoreId, order)));
         } else {
+            // 手動模式生成代碼
             const secureData = btoa(unescape(encodeURIComponent(JSON.stringify(finalCart))));
             let itemsText = finalCart.map((item, idx) => `${idx + 1}. ${item.productName} (x${item.requestedQuantity})`).join('\n');
             const message = `🌸 Rento 代購委託單 (${finalCart.length}筆)\n------------------\n👤 買家：${buyerName}\n\n${itemsText}\n------------------\n📋 系統識別碼：\nRENTO_DATA::${secureData}::END\n------------------`;
             setGeneratedMessage(message);
         }
-        setTimeout(() => { setIsSending(false); setSubmitted(true); setCart([]); }, 800);
+        
+        setTimeout(() => { 
+            setIsSending(false); 
+            setSubmitted(true); 
+            setCart([]); 
+            setProductName('');
+            setImageUrl('');
+            setShopInfo('');
+            setQty('');
+        }, 800);
     } catch (err) {
-        console.error(err);
-        alert("傳送失敗");
+        console.error("Submit error:", err);
+        alert("傳送失敗，請檢查網路連線或聯絡團長");
         setIsSending(false);
     }
   };
@@ -274,7 +288,7 @@ const BuyerForm: React.FC = () => {
             </div>
           )}
 
-          <button onClick={() => { setSubmitted(false); setProductName(''); setQty(''); setGeneratedMessage(''); }} className="w-full bg-slate-100 py-4 rounded-2xl font-bold text-sm text-slate-600">再填一筆委託</button>
+          <button onClick={() => { setSubmitted(false); setGeneratedMessage(''); }} className="w-full bg-slate-100 py-4 rounded-2xl font-bold text-sm text-slate-600">再填一筆委託</button>
         </div>
       </div>
     );
