@@ -215,32 +215,32 @@ const App: React.FC = () => {
     <div className="min-h-screen bg-slate-50 text-slate-900 pb-20 font-sans selection:bg-indigo-100 selection:text-indigo-900">
       <header className="sticky top-0 z-40 glass border-b border-slate-200/60 premium-shadow">
         <div className="safe-pt"></div>
-        <div className="max-w-5xl mx-auto px-6 py-4 flex justify-between items-center">
-          <div className="flex items-center gap-4">
-            <div className="relative bg-slate-900 p-3 rounded-2xl text-amber-400 ring-1 ring-white/10 shadow-xl active-scale">
-              <RentoLogo className="w-6 h-6" />
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 py-4 flex justify-between items-center">
+          <div className="flex items-center gap-2 sm:gap-4 overflow-hidden">
+            <div className="shrink-0 relative bg-slate-900 p-2 sm:p-3 rounded-2xl text-amber-400 ring-1 ring-white/10 shadow-xl active-scale">
+              <RentoLogo className="w-5 h-5 sm:w-6 sm:h-6" />
             </div>
-            <div className="flex flex-col">
-              <h1 className="text-xl font-extrabold tracking-tight text-slate-900 flex items-center gap-2">
+            <div className="flex flex-col min-w-0">
+              <h1 className="text-lg sm:text-xl font-extrabold tracking-tight text-slate-900 flex items-center gap-1.5 truncate">
                 Rento <span className="text-indigo-600">Smart</span>
-                {isSyncing && <Loader2 size={14} className="animate-spin text-indigo-400" />}
+                {isSyncing && <Loader2 size={12} className="animate-spin text-indigo-400" />}
               </h1>
               <div className="flex items-center gap-1.5 mt-0.5">
-                 <span className={`text-[10px] font-bold uppercase tracking-widest flex items-center gap-1 ${isCloudConnected ? 'text-emerald-600' : 'text-slate-400'}`}>
-                    <Cloud size={10} /> {isCloudConnected ? 'Active Cloud' : 'Offline'}
+                 <span className={`text-[9px] sm:text-[10px] font-bold uppercase tracking-widest flex items-center gap-1 ${isCloudConnected ? 'text-emerald-600' : 'text-slate-400'}`}>
+                    <Cloud size={10} /> {isCloudConnected ? 'Active' : 'Offline'}
                  </span>
               </div>
             </div>
           </div>
           
-          <div className="flex items-center gap-2.5">
-            <button onClick={toggleWakeLock} className={`p-3.5 rounded-2xl transition-all shadow-sm active-scale ${isWakeLockActive ? 'bg-amber-400 text-slate-900' : 'bg-white border border-slate-200 text-slate-400'}`}>
-                {isWakeLockActive ? <Sun size={20} fill="currentColor" /> : <Lock size={20} />}
+          <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0 ml-2">
+            <button onClick={toggleWakeLock} className={`p-2.5 sm:p-3.5 rounded-2xl transition-all shadow-sm active-scale ${isWakeLockActive ? 'bg-amber-400 text-slate-900' : 'bg-white border border-slate-200 text-slate-400'}`}>
+                {isWakeLockActive ? <Sun size={18} fill="currentColor" /> : <Lock size={18} />}
             </button>
             <div className="relative" ref={inboxRef}>
-                <button onClick={() => { setIsInboxOpen(!isInboxOpen); requestNotificationPermission(); }} className={`p-3.5 rounded-2xl transition-all shadow-sm active-scale relative ${inboxItems.length > 0 ? 'bg-indigo-600 text-white shadow-indigo-200' : 'bg-white border border-slate-200 text-slate-400'}`}>
-                    <Bell size={20} fill={inboxItems.length > 0 ? "currentColor" : "none"} />
-                    {inboxItems.length > 0 && <span className="absolute -top-1.5 -right-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-rose-500 ring-2 ring-white text-[10px] font-black text-white">{inboxItems.length}</span>}
+                <button onClick={() => { setIsInboxOpen(!isInboxOpen); requestNotificationPermission(); }} className={`p-2.5 sm:p-3.5 rounded-2xl transition-all shadow-sm active-scale relative ${inboxItems.length > 0 ? 'bg-indigo-600 text-white shadow-indigo-200' : 'bg-white border border-slate-200 text-slate-400'}`}>
+                    <Bell size={18} fill={inboxItems.length > 0 ? "currentColor" : "none"} />
+                    {inboxItems.length > 0 && <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-rose-500 ring-2 ring-white text-[9px] font-black text-white">{inboxItems.length}</span>}
                 </button>
                 {isInboxOpen && (
                     <div className="fixed top-24 left-4 right-4 w-auto sm:absolute sm:top-full sm:right-0 sm:left-auto sm:w-96 sm:mt-4 bg-white rounded-[2.5rem] shadow-2xl border border-slate-100 overflow-hidden animate-slide-up origin-top sm:origin-top-right z-50">
@@ -259,10 +259,13 @@ const App: React.FC = () => {
                     </div>
                 )}
             </div>
-            <button onClick={() => setIsSettingsOpen(!isSettingsOpen)} className={`p-3.5 rounded-2xl transition-all shadow-sm active-scale ${isSettingsOpen ? 'bg-slate-800 text-white' : 'bg-white border border-slate-200 text-slate-400'}`}>
-                <Settings size={20} />
+            <button onClick={() => setIsSettingsOpen(!isSettingsOpen)} className={`p-2.5 sm:p-3.5 rounded-2xl transition-all shadow-sm active-scale ${isSettingsOpen ? 'bg-slate-800 text-white' : 'bg-white border border-slate-200 text-slate-400'}`}>
+                <Settings size={18} />
             </button>
-            <button onClick={handleShareLink} className="px-6 py-3.5 bg-indigo-600 text-white rounded-2xl text-xs font-black shadow-lg shadow-indigo-100 active-scale flex items-center gap-2"><Share2 size={16} strokeWidth={2.5} /><span className="hidden sm:inline">發布委託單</span></button>
+            <button onClick={handleShareLink} className="p-2.5 sm:px-6 sm:py-3.5 bg-indigo-600 text-white rounded-2xl text-xs font-black shadow-lg shadow-indigo-100 active-scale flex items-center gap-2">
+                <Share2 size={18} strokeWidth={2.5} />
+                <span className="hidden sm:inline">發布委託單</span>
+            </button>
           </div>
         </div>
       </header>
