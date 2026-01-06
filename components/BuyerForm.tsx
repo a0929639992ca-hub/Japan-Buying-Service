@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Send, ShoppingBag, User, Image as ImageIcon, CheckCircle2, MessageSquareText, Plus, Loader2, Star, Lock, MapPin, ChevronRight, CloudLightning, X, Trash2, Layers, AlertCircle } from 'lucide-react';
 import { OrderStatus, OrderItem } from '../types.ts';
 import { decodeConfig, initCloud, sendOrderToCloud, subscribeToConfig } from '../services/cloudService.ts';
+import { CATEGORIES } from '../constants.ts';
 
 const compressImage = (file: File): Promise<string> => {
   return new Promise((resolve, reject) => {
@@ -36,17 +37,6 @@ const compressImage = (file: File): Promise<string> => {
     reader.onerror = (err) => reject(err);
   });
 };
-
-const CATEGORIES = [
-  { name: 'UNIQLO', logo: 'https://www.google.com/s2/favicons?sz=128&domain=www.uniqlo.com', initial: 'U', color: '#ff0000' },
-  { name: 'GU', logo: 'https://www.google.com/s2/favicons?sz=128&domain=www.gu-global.com', initial: 'G', color: '#0026a3' },
-  { name: 'MUJI', logo: 'https://www.google.com/s2/favicons?sz=128&domain=www.muji.com', initial: 'M', color: '#7f0019' },
-  { name: 'Donki', logo: 'https://www.google.com/s2/favicons?sz=128&domain=www.donki.com', initial: 'D', color: '#f7d100' },
-  { name: '3Coins', logo: 'https://www.google.com/s2/favicons?sz=128&domain=www.3coins.jp', initial: '3', color: '#3bb99c' },
-  { name: 'Bic Camera', logo: 'https://www.google.com/s2/favicons?sz=128&domain=www.biccamera.com', initial: 'B', color: '#e60012' },
-  { name: '藥妝店', logo: 'https://www.google.com/s2/favicons?sz=128&domain=www.matsukiyococokara-online.com', initial: '藥', color: '#fbe400' },
-  { name: '便利商店', logo: 'https://www.google.com/s2/favicons?sz=128&domain=www.lawson.co.jp', initial: 'L', color: '#0066b1' },
-];
 
 const BuyerForm: React.FC = () => {
   const [buyerName, setBuyerName] = useState('');

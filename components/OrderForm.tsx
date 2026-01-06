@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { Plus, Image as ImageIcon, MapPin } from 'lucide-react';
-import { calculateTwd } from '../constants.ts';
+import { calculateTwd, CATEGORIES } from '../constants.ts';
 import { OrderItem, OrderStatus } from '../types.ts';
 
 // Added missing interface definition for OrderFormProps to resolve TypeScript error
@@ -56,6 +56,7 @@ const OrderForm: React.FC<OrderFormProps> = ({ onAddOrder }) => {
   const [price, setPrice] = useState('');
   const [qty, setQty] = useState('1');
   const [isCompressing, setIsCompressing] = useState(false);
+  const [brokenImages, setBrokenImages] = useState<Record<string, boolean>>({});
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const estimatedTotal = price 
@@ -110,6 +111,22 @@ const OrderForm: React.FC<OrderFormProps> = ({ onAddOrder }) => {
 
           <div className="space-y-1.5">
             <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-1">購買地點</label>
+            
+            <div className="grid grid-cols-4 gap-2 mb-2">
+                {CATEGORIES.map(cat => (
+                    <button key={cat.name} type="button" onClick={() => setShopInfo(cat.name)} className={`group flex flex-col items-center justify-center p-2 rounded-xl border transition-all active-scale h-20 ${shopInfo === cat.name ? 'bg-indigo-50 border-indigo-500 ring-2 ring-indigo-500/10' : 'bg-white border-slate-100 hover:border-indigo-100'}`}>
+                        <div className="w-8 h-8 mb-1 flex items-center justify-center overflow-hidden rounded-lg bg-white shadow-sm border border-slate-50 relative">
+                            {!brokenImages[cat.name] ? (
+                                <img src={cat.logo} alt={cat.name} className="max-w-full max-h-full object-contain p-1" onError={() => setBrokenImages(p => ({...p, [cat.name]: true}))} />
+                            ) : (
+                                <div className="w-full h-full flex items-center justify-center text-white font-black text-xs" style={{ backgroundColor: cat.color }}>{cat.initial}</div>
+                            )}
+                        </div>
+                        <span className={`text-[8px] font-black text-center leading-tight tracking-tight truncate w-full ${shopInfo === cat.name ? 'text-indigo-600' : 'text-slate-400'}`}>{cat.name}</span>
+                    </button>
+                ))}
+            </div>
+
             <div className="relative">
               <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-300" size={12} />
               <input type="text" value={shopInfo} onChange={(e) => setShopInfo(e.target.value)} placeholder="地點或通路 (選填)" className="w-full pl-9 pr-4 py-3 bg-gray-50 rounded-xl outline-none text-xs font-medium" />
