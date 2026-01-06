@@ -4,7 +4,7 @@ import { STATUS_LABELS, STATUS_COLORS, calculateTwd } from '../constants.ts';
 import { 
   ShoppingBasket, Trash2, Contact, 
   ShoppingCart, Minus, Plus, 
-  Share2, Package, MapPin, ChevronRight, Check
+  Share2, Package, MapPin, Check, Banknote
 } from 'lucide-react';
 
 interface OrderListProps {
@@ -25,7 +25,6 @@ const OrderList: React.FC<OrderListProps> = ({ orders, onRemoveOrder, onUpdateOr
     );
   }
 
-  // 垂直分組訂單
   const groupedOrders = orders.reduce((groups, order) => {
     const name = order.buyerName || '未知買家';
     if (!groups[name]) groups[name] = [];
@@ -35,6 +34,15 @@ const OrderList: React.FC<OrderListProps> = ({ orders, onRemoveOrder, onUpdateOr
 
   const buyerNames = Object.keys(groupedOrders);
   const getEffectiveQty = (order: OrderItem) => order.status === OrderStatus.PENDING ? order.requestedQuantity : order.purchasedQuantity;
+
+  const handlePriceChange = (order: OrderItem, newPriceStr: string) => {
+    const newPrice = parseFloat(newPriceStr) || 0;
+    const effectiveQty = getEffectiveQty(order);
+    onUpdateOrder(order.id, { 
+      originalPriceJpy: newPrice,
+      calculatedPrice: calculateTwd(newPrice * effectiveQty)
+    });
+  };
 
   const togglePurchased = (order: OrderItem) => {
     const isCurrentlyPurchased = order.status === OrderStatus.PURCHASED;
@@ -75,7 +83,6 @@ const OrderList: React.FC<OrderListProps> = ({ orders, onRemoveOrder, onUpdateOr
 
         return (
           <div key={buyerName} className="animate-slide-up">
-            {/* 買家區段標題 */}
             <div className="flex items-center justify-between mb-4 px-2">
                 <div className="flex items-center gap-3">
                     <div className="w-10 h-10 bg-slate-900 text-amber-400 rounded-xl flex items-center justify-center shadow-lg">
@@ -102,7 +109,6 @@ const OrderList: React.FC<OrderListProps> = ({ orders, onRemoveOrder, onUpdateOr
                 </div>
             </div>
 
-            {/* 訂單內容列表 */}
             <div className="space-y-4">
                 {items.map((order) => (
                     <div key={order.id} className="bg-white rounded-[2rem] border border-slate-200/60 p-5 premium-shadow group transition-all hover:border-indigo-100 flex flex-col sm:flex-row gap-5">
@@ -120,15 +126,29 @@ const OrderList: React.FC<OrderListProps> = ({ orders, onRemoveOrder, onUpdateOr
                                     {order.shopInfo && <div className="flex items-center gap-1 text-[10px] font-bold text-slate-400"><MapPin size={10} /> {order.shopInfo}</div>}
                                 </div>
                                 <div className="flex items-end justify-between mt-2">
-                                    <div className="flex flex-col">
-                                        <span className="text-[9px] text-slate-300 font-black uppercase tracking-tighter">JPY {order.originalPriceJpy.toLocaleString()} × {getEffectiveQty(order)}</span>
-                                        <span className="text-lg font-black text-indigo-600">NT$ {order.calculatedPrice.toLocaleString()}</span>
+                                    <div className="flex flex-col flex-1">
+                                        <div className="flex items-center gap-1 text-[9px] text-slate-300 font-black uppercase tracking-tighter mb-1">
+                                          <Banknote size={10} /> 單價 (JPY)
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                          <input 
+                                            type="number" 
+                                            value={order.originalPriceJpy || ''} 
+                                            onChange={(e) => handlePriceChange(order, e.target.value)}
+                                            placeholder="填入日幣"
+                                            className="w-24 bg-slate-50 border border-slate-100 rounded-lg px-2 py-1 text-sm font-black text-slate-700 outline-none focus:ring-2 focus:ring-indigo-100 transition-all"
+                                          />
+                                          <span className="text-[10px] font-black text-slate-400">× {getEffectiveQty(order)}</span>
+                                        </div>
+                                    </div>
+                                    <div className="text-right">
+                                        <span className="text-[9px] text-slate-300 font-black uppercase block tracking-widest">應收台幣</span>
+                                        <span className="text-xl font-black text-indigo-600 leading-none">NT$ {order.calculatedPrice.toLocaleString()}</span>
                                     </div>
                                 </div>
                             </div>
                         </div>
 
-                        {/* 操作區 */}
                         <div className="flex sm:flex-col gap-3 shrink-0 justify-between items-center sm:items-end">
                             <div className="flex items-center bg-slate-50 rounded-2xl p-1 shadow-inner border border-slate-100 w-fit">
                                 <button onClick={() => adjustPurchasedQty(order, -1)} className="w-10 h-10 flex items-center justify-center text-slate-400 hover:text-indigo-600 transition-all active-scale"><Minus size={16}/></button>
@@ -139,18 +159,21 @@ const OrderList: React.FC<OrderListProps> = ({ orders, onRemoveOrder, onUpdateOr
                                 <button 
                                     onClick={() => onUpdateOrder(order.id, { isPaid: !order.isPaid })}
                                     className={`p-3 rounded-2xl transition-all active-scale ${order.isPaid ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-100' : 'bg-slate-100 text-slate-400'}`}
+                                    title="標記為已付款"
                                 >
                                     <Check size={18} strokeWidth={3} />
                                 </button>
                                 <button 
                                     onClick={() => togglePurchased(order)} 
                                     className={`p-3 rounded-2xl transition-all active-scale ${order.status === OrderStatus.PURCHASED ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-100' : 'bg-slate-100 text-slate-400'}`}
+                                    title="切換購買狀態"
                                 >
                                     <ShoppingCart size={18} />
                                 </button>
                                 <button 
                                     onClick={() => onRemoveOrder(order.id)} 
                                     className="p-3 rounded-2xl bg-rose-50 text-rose-400 hover:bg-rose-500 hover:text-white transition-all active-scale"
+                                    title="刪除訂單"
                                 >
                                     <Trash2 size={18} />
                                 </button>
