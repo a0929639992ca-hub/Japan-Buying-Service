@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { Send, ShoppingBag, User, Image as ImageIcon, CheckCircle2, MessageSquareText, Copy, Plus, Loader2, Info, CloudLightning, X, Trash2, Layers, Star, Store, Ban, ChevronRight, Lock, MapPin, AlertCircle } from 'lucide-react';
 import { OrderStatus, OrderItem } from '../types.ts';
@@ -53,7 +52,7 @@ const CATEGORIES = [
   },
   { 
     name: 'GU', 
-    logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/4/4c/GU_Logo.png/200px-GU_Logo.png', 
+    logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/c/cc/GU_logo.svg/200px-GU_logo.svg.png', 
     type: 'uniqlo' 
   },
   { 
@@ -63,27 +62,27 @@ const CATEGORIES = [
   },
   { 
     name: 'Donki唐吉訶德', 
-    logo: 'https://www.donki.com/img/common/header_logo.png', 
+    logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/c/c9/Don_Quijote_%28store%29_logo.svg/200px-Don_Quijote_%28store%29_logo.svg.png', 
     type: 'law_alert' 
   },
   { 
     name: '3Coins', 
-    logo: 'https://cdn-icons-png.flaticon.com/512/8061/8061483.png', // 3Coins style replacement
+    logo: 'https://cdn-icons-png.flaticon.com/512/3232/3232811.png', // 3 Coins stack style
     type: 'shipping_alert' 
   },
   { 
     name: 'Bic Camera', 
-    logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/e/e5/Bic_Camera_logo.svg/2560px-Bic_Camera_logo.svg.png', 
+    logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/e/e5/Bic_Camera_logo.svg/200px-Bic_Camera_logo.svg.png', 
     type: 'shipping_alert' 
   },
   { 
     name: '藥妝', 
-    logo: 'https://cdn-icons-png.flaticon.com/512/2966/2966327.png', // Drugstore icon
+    logo: 'https://cdn-icons-png.flaticon.com/512/2966/2966327.png', 
     type: 'law_alert' 
   },
   { 
     name: '伴手禮', 
-    logo: 'https://cdn-icons-png.flaticon.com/512/3013/3013444.png', // Souvenir/Gift box icon
+    logo: 'https://cdn-icons-png.flaticon.com/512/3013/3013444.png', 
     type: 'normal' 
   },
 ];
@@ -96,7 +95,6 @@ const BuyerForm: React.FC = () => {
   const [qty, setQty] = useState('');
   const [imageUrl, setImageUrl] = useState('');
   
-  // UNIQLO/GU 專用欄位
   const [itemCode, setItemCode] = useState('');
   const [itemSize, setItemSize] = useState('');
   const [itemColor, setItemColor] = useState('');
@@ -105,7 +103,6 @@ const BuyerForm: React.FC = () => {
   const [cart, setCart] = useState<OrderItem[]>([]);
   const [isSending, setIsSending] = useState(false);
   const [submitted, setSubmitted] = useState(false);
-  // FIX: Add generatedMessage state to handle manual submission display
   const [generatedMessage, setGeneratedMessage] = useState('');
   const [isCompressing, setIsCompressing] = useState(false);
   const [submitMode, setSubmitMode] = useState<'cloud' | 'manual'>('manual');
@@ -137,7 +134,6 @@ const BuyerForm: React.FC = () => {
 
   const handleCategorySelect = (cat: typeof CATEGORIES[0]) => {
     setShopInfo(cat.name);
-    // 捲動到輸入區
     formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
@@ -243,7 +239,6 @@ const BuyerForm: React.FC = () => {
             const secureData = btoa(unescape(encodeURIComponent(JSON.stringify(finalCart))));
             let itemsText = finalCart.map((item, idx) => `${idx + 1}. ${item.productName} (x${item.requestedQuantity})`).join('\n');
             const message = `🌸 Rento 代購委託單 (${finalCart.length}筆)\n------------------\n👤 買家：${buyerName}\n\n${itemsText}\n------------------\n📋 系統識別碼：\nRENTO_DATA::${secureData}::END\n------------------`;
-            // FIX: Successfully set the generated message for manual mode
             setGeneratedMessage(message);
         }
         setTimeout(() => { setIsSending(false); setSubmitted(true); setCart([]); }, 800);
@@ -261,7 +256,6 @@ const BuyerForm: React.FC = () => {
           <CheckCircle2 size={56} className="text-indigo-500 mx-auto" />
           <h2 className="text-2xl font-bold text-slate-900">{submitMode === 'cloud' ? '委託單已送達！' : '委託單已生成'}</h2>
           
-          {/* FIX: Show the generated message and a copy button in manual mode */}
           {submitMode === 'manual' && generatedMessage && (
             <div className="bg-slate-50 p-4 rounded-2xl text-left border border-slate-100">
               <p className="text-[10px] font-bold text-slate-400 uppercase mb-2">請複製以下文字傳送給團長：</p>
@@ -321,7 +315,6 @@ const BuyerForm: React.FC = () => {
 
       <main className="max-w-xl mx-auto p-5 space-y-6">
         
-        {/* Welcome Info Card */}
         <div className="bg-white rounded-[2rem] p-7 shadow-sm border border-slate-200 overflow-hidden relative">
              <div className="relative z-10 space-y-6">
                  <div>
@@ -346,7 +339,6 @@ const BuyerForm: React.FC = () => {
              </div>
         </div>
 
-        {/* Categories Section */}
         <div className="space-y-4">
           <label className="text-xs font-bold text-slate-400 uppercase tracking-widest px-2">常用通路快速點選</label>
           <div className="grid grid-cols-4 gap-3">
@@ -360,7 +352,7 @@ const BuyerForm: React.FC = () => {
                         <img 
                           src={cat.logo} 
                           alt={cat.name} 
-                          className={`max-w-full max-h-full object-contain ${shopInfo === cat.name ? 'brightness-0 invert' : ''}`}
+                          className={`max-w-full max-h-full object-contain transition-all ${shopInfo === cat.name ? 'brightness-0 invert' : ''}`}
                         />
                       </div>
                       <span className="text-[10px] font-bold text-center leading-tight">{cat.name}</span>
@@ -369,7 +361,6 @@ const BuyerForm: React.FC = () => {
           </div>
         </div>
         
-        {/* Section 1: Buyer Info */}
         <div className="bg-white rounded-[2rem] p-7 shadow-sm border border-slate-200">
             <label className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4 block">您的聯絡資料</label>
             <div className="relative">
@@ -383,7 +374,6 @@ const BuyerForm: React.FC = () => {
             </div>
         </div>
 
-        {/* Section 2: Input Area */}
         <div ref={formRef} className="bg-white rounded-[2.5rem] shadow-lg border border-slate-200 p-7 sm:p-9 space-y-7 relative">
           {(isSending || isCompressing) && (
               <div className="absolute inset-0 z-50 bg-white/90 backdrop-blur-sm flex flex-col items-center justify-center space-y-4">
@@ -418,7 +408,6 @@ const BuyerForm: React.FC = () => {
                   />
               </div>
 
-              {/* Conditional Warnings */}
               {showLawAlert && (
                   <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 flex gap-3 animate-slide-in">
                       <AlertCircle className="text-amber-500 shrink-0" size={18} />
@@ -437,7 +426,6 @@ const BuyerForm: React.FC = () => {
                   </div>
               )}
 
-              {/* UNIQLO / GU Specific Fields */}
               {isUniqloOrGu && (
                   <div className="bg-indigo-50/50 border border-indigo-100 rounded-[2rem] p-6 space-y-4 animate-slide-in">
                       <div className="flex items-center gap-2 mb-2">
