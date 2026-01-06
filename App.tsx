@@ -3,7 +3,6 @@ import { OrderItem, OrderStatus } from './types.ts';
 import Calculator from './components/Calculator.tsx';
 import OrderForm from './components/OrderForm.tsx';
 import OrderList from './components/OrderList.tsx';
-import AIAssistant from './components/AIAssistant.tsx';
 import BuyerForm from './components/BuyerForm.tsx';
 import { 
   initCloud, 
@@ -18,7 +17,7 @@ import {
   subscribeToOrders
 } from './services/cloudService.ts';
 import { COST_EXCHANGE_RATE } from './constants.ts';
-import { Search, Calculator as CalcIcon, Share2, Plus, ChevronUp, ChevronDown, Sparkles, Loader2, Banknote, Bell, Inbox, X, Check, Cloud, Sun, Lock, TrendingUp, Settings, Power, Eye, EyeOff, CheckCircle2, Database, Copy, RefreshCw } from 'lucide-react';
+import { Search, Share2, Plus, ChevronUp, ChevronDown, Loader2, Banknote, Bell, Inbox, X, Check, Cloud, Sun, Lock, TrendingUp, Settings, Power, Eye, EyeOff, Database, Copy, RefreshCw } from 'lucide-react';
 
 const FIREBASE_CONFIG: FirebaseConfig = {
   apiKey: "AIzaSyBwRgn0_jCELNK-RO9x3VRhuj2CZsvjpnY",
@@ -49,13 +48,10 @@ const App: React.FC = () => {
   const [isWakeLockActive, setIsWakeLockActive] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
   
-  const [storeId, setStoreId] = useState(() => {
-    let sid = localStorage.getItem('rento_store_id');
-    if (!sid) { sid = crypto.randomUUID().split('-')[0]; localStorage.setItem('rento_store_id', sid); }
-    return sid;
-  });
-
-  const [tempStoreId, setTempStoreId] = useState(storeId);
+  // 固定店鋪 ID 為 165a060c
+  const FIXED_STORE_ID = '165a060c';
+  const [storeId, setStoreId] = useState(FIXED_STORE_ID);
+  const [tempStoreId, setTempStoreId] = useState(FIXED_STORE_ID);
   
   const [isCloudConnected, setIsCloudConnected] = useState(false);
   const [formConfig, setFormConfig] = useState<{ isFormActive: boolean; deadline: string }>({
@@ -131,7 +127,6 @@ const App: React.FC = () => {
   const handleUpdateStoreId = () => {
     if (!tempStoreId.trim()) return;
     if (confirm(`確認切換到店鋪 ID: ${tempStoreId} 嗎？\n這將讀取該 ID 下的所有雲端資料。`)) {
-      localStorage.setItem('rento_store_id', tempStoreId);
       setStoreId(tempStoreId);
       setOrders([]);
       setInboxItems([]);
@@ -292,7 +287,7 @@ const App: React.FC = () => {
                    <button onClick={handleUpdateStoreId} className="px-8 bg-white text-slate-900 rounded-2xl font-black text-sm flex items-center gap-2 active-scale"><RefreshCw size={16}/> 同步</button>
                 </div>
                 <p className="text-[11px] text-white/30 leading-relaxed max-w-lg">
-                   ※ Store ID 是您雲端資料的唯一憑證。若更換設備或重新部署，只需在此輸入原本的 ID 即可找回所有訂單。
+                   ※ 店鋪 ID 預設為 165a060c。若需更換店鋪，請在此修改。
                 </p>
              </div>
           </div>
@@ -332,7 +327,6 @@ const App: React.FC = () => {
       </main>
 
       <Calculator isOpen={isCalculatorOpen} onClose={() => setIsCalculatorOpen(false)} />
-      <AIAssistant />
     </div>
   );
 };

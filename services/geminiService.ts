@@ -2,17 +2,15 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { calculateTwd } from "../constants.ts";
 
-const MODEL_NAME = 'gemini-3-flash-preview';
+// Using gemini-3-pro-preview for complex reasoning and extraction tasks
+const MODEL_NAME = 'gemini-3-pro-preview';
 
-// 懶載入實例，避免在模組載入時因 API Key 空值或 process 未定義而崩潰
-let aiInstance: GoogleGenAI | null = null;
-
+/**
+ * Creates a fresh instance of GoogleGenAI to ensure it uses the most up-to-date API key.
+ * Always use a named parameter when initializing GoogleGenAI.
+ */
 const getAI = (): GoogleGenAI => {
-  if (!aiInstance) {
-    // FIX: Always use a named parameter when initializing GoogleGenAI
-    aiInstance = new GoogleGenAI({ apiKey: process.env.API_KEY });
-  }
-  return aiInstance;
+  return new GoogleGenAI({ apiKey: process.env.API_KEY });
 };
 
 /**
@@ -50,7 +48,7 @@ export const parseOrderFromText = async (text: string): Promise<any | null> => {
       }
     });
 
-    // FIX: Ensure correct extraction of text from GenerateContentResponse using the .text property
+    // Directly access the .text property to get the generated content
     const responseText = response.text?.trim();
     if (!responseText) return null;
     const result = JSON.parse(responseText);
@@ -93,8 +91,8 @@ export const generateAssistantResponse = async (
         
         回答請簡潔有力，適合手機閱讀。`,
       },
-      // Ensure history is correctly mapped for the chat interface
-      history: history.map(h => ({ role: h.role === 'model' ? 'model' : 'user', parts: [{ text: h.text }] })) as any,
+      // History parts mapping according to Chat API requirements
+      history: history.map(h => ({ role: h.role === 'model' ? 'model' : 'user', parts: [{ text: h.text }] })),
     });
 
     let messageContent: any = prompt;
@@ -113,7 +111,7 @@ export const generateAssistantResponse = async (
       ];
     }
 
-    // FIX: chat.sendMessage only accepts the message parameter, property .text is used to extract result
+    // Use chat.sendMessage with the message parameter and access response via .text property
     const result = await chat.sendMessage({ message: messageContent });
     return result.text || "抱歉，我暫時無法回答。";
   } catch (error) {
@@ -163,7 +161,7 @@ export const analyzeProduct = async (name: string, base64Image?: string): Promis
         }
       }
     });
-    // FIX: Extract text property from GenerateContentResponse correctly and handle trimming
+    // Use .text getter to retrieve content from GenerateContentResponse
     const jsonStr = response.text?.trim();
     if (!jsonStr) return null;
     return JSON.parse(jsonStr) as AnalyzedProductData;

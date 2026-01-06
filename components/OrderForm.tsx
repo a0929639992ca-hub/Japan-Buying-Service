@@ -1,9 +1,9 @@
 import React, { useState, useRef } from 'react';
-import { Plus, AlertCircle, Loader2, Contact, Image as ImageIcon, X, Sparkles, ShoppingBag, Wand2, MapPin } from 'lucide-react';
+import { Plus, Image as ImageIcon, MapPin } from 'lucide-react';
 import { calculateTwd } from '../constants.ts';
 import { OrderItem, OrderStatus } from '../types.ts';
-import { analyzeProduct } from '../services/geminiService.ts';
 
+// Added missing interface definition for OrderFormProps to resolve TypeScript error
 interface OrderFormProps {
   onAddOrder: (order: OrderItem) => void;
 }
@@ -55,9 +55,7 @@ const OrderForm: React.FC<OrderFormProps> = ({ onAddOrder }) => {
   const [shopInfo, setShopInfo] = useState('');
   const [price, setPrice] = useState('');
   const [qty, setQty] = useState('1');
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isCompressing, setIsCompressing] = useState(false);
-  const [aiWarning, setAiWarning] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const estimatedTotal = price 
@@ -91,26 +89,10 @@ const OrderForm: React.FC<OrderFormProps> = ({ onAddOrder }) => {
       calculatedPrice: estimatedTotal,
       status: OrderStatus.PENDING,
       isPaid: false,
-      notes: aiWarning,
       createdAt: Date.now(),
     });
-    setImageUrl(''); setName(''); setShopInfo(''); setPrice(''); setQty('1'); setAiWarning('');
+    setImageUrl(''); setName(''); setShopInfo(''); setPrice(''); setQty('1');
   };
-
-  const handleSmartAnalyze = async () => {
-    if (!name && !imageUrl) return;
-    setIsAnalyzing(true);
-    setAiWarning('');
-    try {
-        const result = await analyzeProduct(name, imageUrl);
-        if (result) {
-            if (result.suggestedName) setName(result.suggestedName);
-            if (result.estimatedPriceJpy > 0 && (!price || price === '0')) setPrice(result.estimatedPriceJpy.toString());
-            if (result.warnings) setAiWarning(`⚠️ 注意：${result.warnings}`);
-        }
-    } catch (e) { alert("分析失敗"); }
-    finally { setIsAnalyzing(false); }
-  }
 
   return (
     <form onSubmit={handleSubmit} className="p-6 space-y-5 animate-slide-in relative">
@@ -122,10 +104,7 @@ const OrderForm: React.FC<OrderFormProps> = ({ onAddOrder }) => {
           </div>
 
           <div className="space-y-1.5">
-            <div className="flex justify-between items-center ml-1">
-                <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest">商品資訊</label>
-                <button type="button" onClick={handleSmartAnalyze} disabled={isAnalyzing} className="text-[9px] font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full">AI 分析</button>
-            </div>
+            <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-1">商品名稱</label>
             <input type="text" required value={name} onChange={(e) => setName(e.target.value)} placeholder="商品名稱" className="w-full px-4 py-3 bg-gray-50 rounded-xl outline-none text-xs font-medium" />
           </div>
 

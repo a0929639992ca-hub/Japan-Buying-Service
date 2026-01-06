@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Send, ShoppingBag, User, Image as ImageIcon, CheckCircle2, MessageSquareText, Copy, Plus, Loader2, Info, CloudLightning, X, Trash2, Layers, Star, Store, Ban, ChevronRight, Lock, MapPin, AlertCircle } from 'lucide-react';
+import { Send, ShoppingBag, User, Image as ImageIcon, CheckCircle2, MessageSquareText, Plus, Loader2, Star, Lock, MapPin, ChevronRight, CloudLightning, X, Trash2, Layers } from 'lucide-react';
 import { OrderStatus, OrderItem } from '../types.ts';
 import { decodeConfig, initCloud, sendOrderToCloud, subscribeToConfig } from '../services/cloudService.ts';
 
@@ -14,7 +14,7 @@ const compressImage = (file: File): Promise<string> => {
         const canvas = document.createElement('canvas');
         let width = img.width;
         let height = img.height;
-        const MAX_WIDTH = 1200; // iPhone 17 Pro 支援更高解析，提升壓縮上限
+        const MAX_WIDTH = 1200;
         const MAX_HEIGHT = 1200;
         if (width > height) {
           if (width > MAX_WIDTH) { height *= MAX_WIDTH / width; width = MAX_WIDTH; }
@@ -26,7 +26,7 @@ const compressImage = (file: File): Promise<string> => {
         const ctx = canvas.getContext('2d');
         if (ctx) {
             ctx.drawImage(img, 0, 0, width, height);
-            resolve(canvas.toDataURL('image/jpeg', 0.8)); // 畫質微調至 0.8
+            resolve(canvas.toDataURL('image/jpeg', 0.8));
         } else {
             resolve(event.target?.result as string);
         }
@@ -53,7 +53,7 @@ const BuyerForm: React.FC = () => {
   const [productName, setProductName] = useState('');
   const [shopInfo, setShopInfo] = useState('');
   const [notes, setNotes] = useState('');
-  const [qty, setQty] = useState('');
+  const [qty, setQty] = useState('1'); // 預設數量設為 1
   const [imageUrl, setImageUrl] = useState('');
   const [brokenImages, setBrokenImages] = useState<Record<string, boolean>>({});
   const [itemCode, setItemCode] = useState('');
@@ -139,7 +139,7 @@ const BuyerForm: React.FC = () => {
     };
 
     setCart(prev => [...prev, newItem]);
-    setProductName(''); setShopInfo(''); setQty(''); setNotes(''); setImageUrl(''); setItemCode(''); setItemSize(''); setItemColor('');
+    setProductName(''); setShopInfo(''); setQty('1'); setNotes(''); setImageUrl(''); setItemCode(''); setItemSize(''); setItemColor('');
     if (fileInputRef.current) fileInputRef.current.value = '';
     if (navigator.vibrate) navigator.vibrate(40);
   };
@@ -149,7 +149,6 @@ const BuyerForm: React.FC = () => {
     setIsSending(true);
     let finalCart = [...cart];
     if (productName && qty) {
-      // 若欄位還有東西，自動幫忙加入最後一項
       let currentNotes = notes;
       if (shopInfo === 'UNIQLO' || shopInfo === 'GU') currentNotes = `[${itemGender}] 貨源碼:${itemCode} / 尺寸:${itemSize} / 顏色:${itemColor}\n${notes}`;
       finalCart.push({ id: `EXT-L-${Date.now()}`, buyerName, productName, shopInfo, imageUrl, originalPriceJpy: 0, requestedQuantity: parseInt(qty), purchasedQuantity: 0, calculatedPrice: 0, status: OrderStatus.PENDING, isPaid: false, notes: currentNotes, createdAt: Date.now() });
@@ -218,7 +217,7 @@ const BuyerForm: React.FC = () => {
                  </div>
                  
                  <div className="bg-slate-50 p-6 rounded-4xl space-y-5 border border-slate-100 shadow-inner">
-                     <h3 className="text-[11px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2"><Star size={14} className="text-amber-400 fill-amber-400"/> 匯率說明 (不主動顯示)</h3>
+                     <h3 className="text-[11px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2"><Star size={14} className="text-amber-400 fill-amber-400"/> 匯率說明</h3>
                      <div className="space-y-3">
                          <div className="bg-white p-5 rounded-3xl flex justify-between items-center shadow-sm border border-slate-50"><div className="text-sm font-bold text-slate-600">總金額滿 <span className="text-slate-900">¥5500</span></div><div className="text-base font-black text-indigo-600">優惠匯率 0.23</div></div>
                          <div className="bg-white p-5 rounded-3xl flex justify-between items-center shadow-sm border border-slate-50"><div className="text-sm font-bold text-slate-600">總金額未滿 ¥5500</div><div className="text-base font-black text-indigo-600">基本匯率 0.24</div></div>
