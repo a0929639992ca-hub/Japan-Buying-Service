@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Send, ShoppingBag, User, Image as ImageIcon, CheckCircle2, MessageSquareText, Plus, Loader2, Star, Lock, MapPin, ChevronRight, CloudLightning, X, Trash2, Layers } from 'lucide-react';
+import { Send, ShoppingBag, User, Image as ImageIcon, CheckCircle2, MessageSquareText, Plus, Loader2, Star, Lock, MapPin, ChevronRight, CloudLightning, X, Trash2, Layers, AlertCircle } from 'lucide-react';
 import { OrderStatus, OrderItem } from '../types.ts';
 import { decodeConfig, initCloud, sendOrderToCloud, subscribeToConfig } from '../services/cloudService.ts';
 
@@ -73,6 +73,7 @@ const BuyerForm: React.FC = () => {
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const buyerNameSectionRef = useRef<HTMLDivElement>(null);
+  const imageQtySectionRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -91,14 +92,20 @@ const BuyerForm: React.FC = () => {
 
   const handleCategorySelect = (cat: typeof CATEGORIES[0]) => {
     setShopInfo(cat.name);
+    // 延遲一下讓 React 渲染新欄位 (如 Uniqlo)，然後捲動到下一個邏輯區塊
     setTimeout(() => {
-      if (buyerNameSectionRef.current) {
-        const yOffset = -100;
-        const y = buyerNameSectionRef.current.getBoundingClientRect().top + window.pageYOffset + yOffset;
-        window.scrollTo({ top: y, behavior: 'smooth' });
-        document.getElementById('buyer-name-input')?.focus();
+      if (cat.name === 'UNIQLO' || cat.name === 'GU') {
+        const itemCodeInput = document.querySelector('input[placeholder*="6 位數字"]') as HTMLInputElement;
+        if (itemCodeInput) {
+            itemCodeInput.focus();
+            itemCodeInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      } else {
+        if (imageQtySectionRef.current) {
+            imageQtySectionRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
       }
-    }, 150);
+    }, 100);
   };
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -169,6 +176,18 @@ const BuyerForm: React.FC = () => {
     } catch (err) { alert("傳送失敗"); } finally { setIsSending(false); }
   };
 
+  const getShopWarningMessage = () => {
+    if (shopInfo === 'Donki' || shopInfo === '藥妝店') {
+      return "因應日本法規，感冒藥及止痛藥或其他人氣商品一人限定購買一個";
+    }
+    if (shopInfo === 'Bic Camera' || shopInfo === '3Coins' || shopInfo === 'MUJI') {
+      return "大型商品家電或佔重佔空間商品以及液體商品價格另計";
+    }
+    return null;
+  };
+
+  const warningMessage = getShopWarningMessage();
+
   if (submitted) {
     return (
       <div className="min-h-screen bg-white flex flex-col items-center justify-center p-10 text-center animate-slide-up">
@@ -226,24 +245,6 @@ const BuyerForm: React.FC = () => {
              </div>
         </div>
 
-        <div className="space-y-5 animate-slide-up" style={{ animationDelay: '0.1s' }}>
-          <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest px-2">常用購物通路</label>
-          <div className="grid grid-cols-4 gap-4">
-              {CATEGORIES.map(cat => (
-                  <button key={cat.name} onClick={() => handleCategorySelect(cat)} className={`group flex flex-col items-center justify-center p-3 rounded-3xl border transition-all active-scale h-32 ${shopInfo === cat.name ? 'bg-indigo-50 border-indigo-500 ring-4 ring-indigo-500/10' : 'bg-white border-slate-100 premium-shadow'}`}>
-                      <div className="w-14 h-14 mb-3 flex items-center justify-center overflow-hidden rounded-2xl bg-white shadow-sm border border-slate-50 relative">
-                        {!brokenImages[cat.name] ? (
-                          <img src={cat.logo} alt={cat.name} className="max-w-full max-h-full object-contain p-2" onError={() => setBrokenImages(p => ({...p, [cat.name]: true}))} />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center text-white font-black text-xl" style={{ backgroundColor: cat.color }}>{cat.initial}</div>
-                        )}
-                      </div>
-                      <span className={`text-[10px] font-black text-center leading-tight tracking-tight ${shopInfo === cat.name ? 'text-indigo-600' : 'text-slate-500'}`}>{cat.name}</span>
-                  </button>
-              ))}
-          </div>
-        </div>
-        
         <div ref={buyerNameSectionRef} className="bg-white rounded-4xl p-8 premium-shadow border border-slate-200/50 transition-all focus-within:ring-4 focus-within:ring-indigo-50 animate-slide-up" style={{ animationDelay: '0.2s' }}>
             <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-4 block">聯絡資料</label>
             <div className="relative">
@@ -264,16 +265,40 @@ const BuyerForm: React.FC = () => {
                   </div>
               </div>
 
-              <div className="space-y-2">
-                  <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">購買通路 (選填)</label>
-                  <div className="relative">
-                      <MapPin className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300" size={20} />
-                      <input type="text" value={shopInfo} onChange={(e) => setShopInfo(e.target.value)} placeholder="例如：Uniqlo, 松本清..." className="w-full pl-14 pr-6 py-5 bg-slate-50 rounded-2xl outline-none font-bold text-base text-slate-800 focus:bg-white transition-all border border-transparent focus:border-slate-100" />
+              <div className="space-y-4">
+                  <div className="space-y-2">
+                      <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">購買通路 (選填)</label>
+                      <div className="relative">
+                          <MapPin className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300" size={20} />
+                          <input type="text" value={shopInfo} onChange={(e) => setShopInfo(e.target.value)} placeholder="例如：Uniqlo, 松本清..." className="w-full pl-14 pr-6 py-5 bg-slate-50 rounded-2xl outline-none font-bold text-base text-slate-800 focus:bg-white transition-all border border-transparent focus:border-slate-100" />
+                      </div>
                   </div>
+
+                  <div className="grid grid-cols-4 gap-3">
+                      {CATEGORIES.map(cat => (
+                          <button key={cat.name} onClick={() => handleCategorySelect(cat)} className={`group flex flex-col items-center justify-center p-2 rounded-2xl border transition-all active-scale h-24 ${shopInfo === cat.name ? 'bg-indigo-50 border-indigo-500 ring-4 ring-indigo-500/10' : 'bg-white border-slate-100 hover:border-indigo-100'}`} type="button">
+                              <div className="w-10 h-10 mb-1.5 flex items-center justify-center overflow-hidden rounded-xl bg-white shadow-sm border border-slate-50 relative">
+                                {!brokenImages[cat.name] ? (
+                                  <img src={cat.logo} alt={cat.name} className="max-w-full max-h-full object-contain p-1.5" onError={() => setBrokenImages(p => ({...p, [cat.name]: true}))} />
+                                ) : (
+                                  <div className="w-full h-full flex items-center justify-center text-white font-black text-sm" style={{ backgroundColor: cat.color }}>{cat.initial}</div>
+                                )}
+                              </div>
+                              <span className={`text-[9px] font-black text-center leading-tight tracking-tight truncate w-full ${shopInfo === cat.name ? 'text-indigo-600' : 'text-slate-400'}`}>{cat.name}</span>
+                          </button>
+                      ))}
+                  </div>
+
+                  {warningMessage && (
+                    <div className="bg-amber-50 border border-amber-100 rounded-2xl p-4 flex items-start gap-3 animate-fade-in">
+                      <AlertCircle size={18} className="text-amber-500 shrink-0 mt-0.5" />
+                      <p className="text-xs font-bold text-amber-800 leading-relaxed">{warningMessage}</p>
+                    </div>
+                  )}
               </div>
 
               {(shopInfo.toUpperCase().includes('UNIQLO') || shopInfo.toUpperCase().includes('GU')) && (
-                  <div className="bg-indigo-50/40 border border-indigo-100/50 rounded-4xl p-7 space-y-6">
+                  <div className="bg-indigo-50/40 border border-indigo-100/50 rounded-4xl p-7 space-y-6 animate-slide-up">
                       <div className="flex items-center gap-2.5"><Star size={16} className="text-indigo-500 fill-indigo-500" /><span className="text-[11px] font-black text-indigo-800 uppercase tracking-wider">服飾細節規格</span></div>
                       <div className="grid grid-cols-1 gap-5">
                           <div className="space-y-2"><label className="text-[10px] font-black text-indigo-400 uppercase tracking-widest ml-1">6 碼貨源碼</label><input type="text" maxLength={6} value={itemCode} onChange={e => setItemCode(e.target.value)} placeholder="商品標籤上的 6 位數字" className="w-full px-5 py-4 bg-white rounded-2xl border border-indigo-100 font-bold focus:ring-4 focus:ring-indigo-100 outline-none" /></div>
@@ -285,7 +310,7 @@ const BuyerForm: React.FC = () => {
                   </div>
               )}
 
-              <div className="flex gap-5 h-44">
+              <div className="flex gap-5 h-44" ref={imageQtySectionRef}>
                   <div className="flex-1">
                       {imageUrl ? (
                         <div className="w-full h-full rounded-3xl overflow-hidden border border-slate-100 relative group"><img src={imageUrl} className="w-full h-full object-cover" /><button onClick={() => setImageUrl('')} className="absolute top-3 right-3 bg-black/60 text-white p-2 rounded-full backdrop-blur-md active-scale"><X size={16} /></button></div>
