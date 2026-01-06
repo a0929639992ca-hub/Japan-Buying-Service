@@ -130,7 +130,7 @@ const AIAssistant: React.FC = () => {
                 <Wand2 size={20} className="text-white" />
             </div>
             <div>
-                <h3 className="font-bold text-sm">れんと AI 助理</h3>
+                <h3 className="font-bold text-sm">れんと代購 AI 助理</h3>
                 <p className="text-xs text-white/80 flex items-center gap-1">
                     <span className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse"></span>
                     Gemini 支援中

@@ -1,3 +1,4 @@
+// Fix: Correct malformed import statement
 import React, { useState } from 'react';
 import { OrderItem, OrderStatus } from '../types.ts';
 import { STATUS_LABELS, STATUS_COLORS, calculateTwd } from '../constants.ts';
@@ -82,7 +83,7 @@ const OrderList: React.FC<OrderListProps> = ({ orders, onRemoveOrder, onUpdateOr
   const copySummary = (e: React.MouseEvent, name: string, items: OrderItem[]) => {
     e.stopPropagation();
     const total = items.reduce((sum, i) => sum + i.calculatedPrice, 0);
-    const text = `🌸 れんと代購團 - ${name}\n` +
+    const text = `🌸 れんと代購 - ${name}\n` +
       `--------------------------\n` +
       items.map(i => `• ${i.productName} (x${getEffectiveQty(i)}): NT$ ${i.calculatedPrice.toLocaleString()}`).join('\n') +
       `\n--------------------------\n總計: NT$ ${total.toLocaleString()}`;

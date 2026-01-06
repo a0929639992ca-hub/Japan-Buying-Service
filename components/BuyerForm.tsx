@@ -159,7 +159,7 @@ const BuyerForm: React.FC = () => {
         } else {
             const secureData = btoa(unescape(encodeURIComponent(JSON.stringify(finalCart))));
             const itemsSummary = finalCart.map((it, idx) => `${idx+1}. ${it.productName} (x${it.requestedQuantity})`).join('\n');
-            const message = `🌸 れんと代購單\n👤 買家：${buyerName}\n\n${itemsSummary}\n\n📋 識別碼：\nRENTO_DATA::${secureData}::END`;
+            const message = `🌸 れんと代購委託單\n👤 買家：${buyerName}\n\n${itemsSummary}\n\n📋 識別碼：\nRENTO_DATA::${secureData}::END`;
             navigator.clipboard.writeText(message);
         }
         setSubmitted(true);
@@ -211,7 +211,7 @@ const BuyerForm: React.FC = () => {
           <div className="px-6 py-5 flex items-center justify-between">
             <div className="flex items-center gap-4">
                 <div className="bg-indigo-600 p-2.5 rounded-2xl text-white shadow-lg shadow-indigo-100"><ShoppingBag size={20} strokeWidth={2.5} /></div>
-                <h1 className="text-lg font-black text-slate-800 tracking-tight">れんと委託填單</h1>
+                <h1 className="text-lg font-black text-slate-800 tracking-tight">れんと代購委託填單</h1>
             </div>
           </div>
       </header>
@@ -311,7 +311,11 @@ const BuyerForm: React.FC = () => {
                   </div>
                   <div className="w-36 flex flex-col items-center justify-center gap-3 bg-slate-50 rounded-3xl border border-slate-100">
                     <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest">數量</label>
-                    <input type="number" min="1" value={qty} onChange={(e) => setQty(e.target.value)} className="w-full bg-transparent outline-none font-black text-4xl text-center text-indigo-600" placeholder="1" />
+                    <input type="number" step="1" min="1" value={qty} onChange={(e) => setQty(e.target.value)} className="w-full bg-transparent outline-none font-black text-4xl text-center text-indigo-600 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" placeholder="1" />
+                    <div className="flex gap-4">
+                      <button onClick={() => setQty(prev => Math.max(1, parseInt(prev || '1') - 1).toString())} className="p-1 text-slate-300 hover:text-indigo-600 active:scale-90 transition-all"><X size={16} className="rotate-45" style={{ transform: 'rotate(0deg)' }} /></button>
+                      <button onClick={() => setQty(prev => (parseInt(prev || '0') + 1).toString())} className="p-1 text-slate-300 hover:text-indigo-600 active:scale-90 transition-all"><Plus size={16} /></button>
+                    </div>
                   </div>
               </div>
 
@@ -352,7 +356,7 @@ const BuyerForm: React.FC = () => {
         </div>
         
         <p className="text-center mt-12 mb-8 text-[11px] text-slate-300 font-black uppercase tracking-widest opacity-60">
-            Powered by れんと Smart Engine
+            Powered by れんと代購 Smart Engine
         </p>
       </main>
     </div>

@@ -8,7 +8,7 @@ export const calculateTwd = (jpyAmount: number): number => {
 // 成本匯率 (計算淨賺用)
 export const COST_EXCHANGE_RATE = 0.205;
 
-export const APP_NAME = "れんと代購團";
+export const APP_NAME = "れんと代購";
 
 export const STATUS_LABELS: Record<string, string> = {
   pending: "待處理",
