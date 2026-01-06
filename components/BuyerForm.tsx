@@ -47,42 +47,42 @@ const compressImage = (file: File): Promise<string> => {
 const CATEGORIES = [
   { 
     name: 'UNIQLO', 
-    logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/9/92/UNIQLO_logo.svg/512px-UNIQLO_logo.svg.png', 
+    logo: 'https://api.faviconkit.com/uniqlo.com/144', 
     type: 'uniqlo' 
   },
   { 
     name: 'GU', 
-    logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/c/cc/GU_logo.svg/512px-GU_logo.svg.png', 
+    logo: 'https://api.faviconkit.com/gu-global.com/144', 
     type: 'uniqlo' 
   },
   { 
     name: 'MUJI', 
-    logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/c/ce/Muji_logo.svg/512px-Muji_logo.svg.png', 
+    logo: 'https://api.faviconkit.com/muji.com/144', 
     type: 'shipping_alert' 
   },
   { 
     name: 'Donki唐吉訶德', 
-    logo: 'https://www.google.com/s2/favicons?sz=128&domain=www.donki.com', 
+    logo: 'https://api.faviconkit.com/donki.com/144', 
     type: 'law_alert' 
   },
   { 
     name: '3Coins', 
-    logo: 'https://www.google.com/s2/favicons?sz=128&domain=www.3coins.jp', 
+    logo: 'https://api.faviconkit.com/3coins.jp/144', 
     type: 'shipping_alert' 
   },
   { 
     name: 'Bic Camera', 
-    logo: 'https://www.google.com/s2/favicons?sz=128&domain=www.biccamera.com', 
+    logo: 'https://api.faviconkit.com/biccamera.com/144', 
     type: 'shipping_alert' 
   },
   { 
     name: '藥妝', 
-    logo: 'https://www.google.com/s2/favicons?sz=128&domain=www.matsukiyococokara-online.com', 
+    logo: 'https://api.faviconkit.com/matsukiyococokara-online.com/144', 
     type: 'law_alert' 
   },
   { 
     name: '伴手禮', 
-    logo: 'https://cdn-icons-png.flaticon.com/512/10043/10043477.png', // 更可愛的禮物圖示
+    logo: 'https://cdn-icons-png.flaticon.com/512/3013/3013444.png', 
     type: 'normal' 
   },
 ];
@@ -172,7 +172,6 @@ const BuyerForm: React.FC = () => {
         finalNotes = `[${itemGender}] 貨源碼:${itemCode} / 尺寸:${itemSize || '未填'} / 顏色:${itemColor || '未填'} \n${notes}`;
     }
     
-    // 這裡使用 null 替代 undefined 以適應 Firebase
     const newItem: OrderItem = {
       id: `EXT-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
       buyerName: buyerName || '未知買家',
@@ -212,7 +211,6 @@ const BuyerForm: React.FC = () => {
     setIsSending(true);
     let finalCart = [...cart];
     
-    // 如果輸入框還有內容，也一起加入
     if (productName && qty && parseInt(qty) > 0) {
          let currentFinalNotes = notes;
          if (shopInfo === 'UNIQLO' || shopInfo === 'GU') {
@@ -237,10 +235,8 @@ const BuyerForm: React.FC = () => {
     
     try {
         if (submitMode === 'cloud') {
-            // 發送到雲端
             await Promise.all(finalCart.map(order => sendOrderToCloud(cloudStoreId, order)));
         } else {
-            // 手動模式生成代碼
             const secureData = btoa(unescape(encodeURIComponent(JSON.stringify(finalCart))));
             let itemsText = finalCart.map((item, idx) => `${idx + 1}. ${item.productName} (x${item.requestedQuantity})`).join('\n');
             const message = `🌸 Rento 代購委託單 (${finalCart.length}筆)\n------------------\n👤 買家：${buyerName}\n\n${itemsText}\n------------------\n📋 系統識別碼：\nRENTO_DATA::${secureData}::END\n------------------`;
@@ -362,7 +358,7 @@ const BuyerForm: React.FC = () => {
                     onClick={() => handleCategorySelect(cat)}
                     className={`group flex flex-col items-center justify-center p-2 rounded-2xl border transition-all active:scale-95 h-28 ${shopInfo === cat.name ? 'bg-indigo-50 border-indigo-600 shadow-md ring-2 ring-indigo-600/10' : 'bg-white border-slate-100'}`}
                   >
-                      <div className="w-14 h-14 mb-2 flex items-center justify-center overflow-hidden rounded-xl bg-white shadow-sm border border-slate-50 group-active:scale-90 p-2">
+                      <div className="w-14 h-14 mb-2 flex items-center justify-center overflow-hidden rounded-xl bg-white shadow-sm border border-slate-50 group-active:scale-90 p-2.5">
                         <img 
                           src={cat.logo} 
                           alt={cat.name} 
