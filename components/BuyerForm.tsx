@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { Send, ShoppingBag, User, Image as ImageIcon, CheckCircle2, MessageSquareText, Copy, Plus, Loader2, Info, CloudLightning, X, Trash2, Layers, Star, Store, Ban, ChevronRight, Lock, MapPin, AlertCircle } from 'lucide-react';
 import { OrderStatus, OrderItem } from '../types.ts';
@@ -149,8 +150,9 @@ const BuyerForm: React.FC = () => {
       const element = buyerNameSectionRef.current;
       if (element) {
         const headerOffset = 85; 
-        const offsetPosition = element.getBoundingClientRect().top + window.pageYOffset - headerOffset;
-        window.scrollTo({ top: offsetPosition, behavior: 'smooth' });
+        const elementPosition = element.getBoundingClientRect().top + window.pageYOffset - headerOffset;
+        // FIX: Changed undefined 'offsetPosition' to 'elementPosition'
+        window.scrollTo({ top: elementPosition, behavior: 'smooth' });
         const input = document.getElementById('buyer-name-input');
         if (input) input.focus();
       }

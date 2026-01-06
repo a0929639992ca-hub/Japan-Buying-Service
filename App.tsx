@@ -18,7 +18,7 @@ import {
   subscribeToOrders
 } from './services/cloudService.ts';
 import { COST_EXCHANGE_RATE } from './constants.ts';
-import { Search, Calculator as CalcIcon, Share2, Plus, ChevronUp, ChevronDown, Sparkles, Loader2, Banknote, Bell, Inbox, X, Check, Cloud, Sun, Lock, TrendingUp, Settings, Power, Eye, EyeOff, CheckCircle2 } from 'lucide-react';
+import { Search, Calculator as CalcIcon, Share2, Plus, ChevronUp, ChevronDown, Sparkles, Loader2, Banknote, Bell, Inbox, X, Check, Cloud, Sun, Lock, TrendingUp, Settings, Power, Eye, EyeOff, CheckCircle2, Database, Copy, RefreshCw } from 'lucide-react';
 
 const FIREBASE_CONFIG: FirebaseConfig = {
   apiKey: "AIzaSyBwRgn0_jCELNK-RO9x3VRhuj2CZsvjpnY",
@@ -43,17 +43,19 @@ const App: React.FC = () => {
   const [isInboxOpen, setIsInboxOpen] = useState(false);
   const [isCalculatorOpen, setIsCalculatorOpen] = useState(false);
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [viewMode, setViewMode] = useState<'admin' | 'buyer'>('admin');
-  const [isAISensing, setIsAISensing] = useState(false);
   const [isWakeLockActive, setIsWakeLockActive] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
   
-  const [storeId] = useState(() => {
+  const [storeId, setStoreId] = useState(() => {
     let sid = localStorage.getItem('rento_store_id');
     if (!sid) { sid = crypto.randomUUID().split('-')[0]; localStorage.setItem('rento_store_id', sid); }
     return sid;
   });
+
+  const [tempStoreId, setTempStoreId] = useState(storeId);
   
   const [isCloudConnected, setIsCloudConnected] = useState(false);
   const [formConfig, setFormConfig] = useState<{ isFormActive: boolean; deadline: string }>({
@@ -61,17 +63,14 @@ const App: React.FC = () => {
     deadline: '2026.01.29 23:00'
   });
 
-  const lastClipboardText = useRef<string>('');
   const inboxRef = useRef<HTMLDivElement>(null);
   const wakeLockRef = useRef<any>(null);
 
-  // 初始化通知
   const requestNotificationPermission = useCallback(async () => {
     if (!('Notification' in window)) return;
     if (Notification.permission === 'default') await Notification.requestPermission();
   }, []);
 
-  // 螢幕恆亮
   const toggleWakeLock = async () => {
     if ('wakeLock' in navigator) {
       if (!isWakeLockActive) {
@@ -88,18 +87,17 @@ const App: React.FC = () => {
     }
   };
 
-  // 雲端連線與資料監聽
+  // 當 Store ID 改變時，重新連線與監聽
   useEffect(() => {
     const success = initCloud(FIREBASE_CONFIG);
     setIsCloudConnected(success);
-    if (success) {
-      // 1. 監聽已存訂單 (永久資料)
+    if (success && storeId) {
+      setIsSyncing(true);
       const unsubOrders = subscribeToOrders(storeId, (cloudOrders) => {
         setOrders(cloudOrders);
         setIsSyncing(false);
       });
 
-      // 2. 監聽收件匣 (臨時資料)
       const unsubInbox = subscribeToInbox(storeId, (newOrder) => {
         setInboxItems(prev => {
           if (prev.some(p => p.id === newOrder.id) || orders.some(o => o.id === newOrder.id)) return prev;
@@ -108,7 +106,6 @@ const App: React.FC = () => {
         });
       });
 
-      // 3. 監聽配置
       const unsubConfig = subscribeToConfig(storeId, (config) => setFormConfig(config));
 
       return () => {
@@ -117,7 +114,7 @@ const App: React.FC = () => {
         unsubConfig();
       };
     }
-  }, [storeId]); // 注意：這裡不再依賴 orders，避免無限循環
+  }, [storeId]);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -132,7 +129,17 @@ const App: React.FC = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // --- 操作邏輯 (全雲端化) ---
+  // --- 管理店鋪 ID ---
+  const handleUpdateStoreId = () => {
+    if (!tempStoreId.trim()) return;
+    if (confirm(`確認切換到店鋪 ID: ${tempStoreId} 嗎？\n這將讀取該 ID 下的所有雲端資料。`)) {
+      localStorage.setItem('rento_store_id', tempStoreId);
+      setStoreId(tempStoreId);
+      setOrders([]);
+      setInboxItems([]);
+      setIsSettingsOpen(false);
+    }
+  };
 
   const handleUpdateOrder = async (id: string, updates: Partial<OrderItem>) => {
     const updatedOrder = orders.find(o => o.id === id);
@@ -222,7 +229,7 @@ const App: React.FC = () => {
               </h1>
               <div className="flex items-center gap-1.5 mt-1">
                  <span className={`text-[9px] font-black uppercase tracking-widest flex items-center gap-1 ${isCloudConnected ? 'text-emerald-600' : 'text-slate-400'}`}>
-                    <Cloud size={10} /> {isCloudConnected ? 'Cloud Permanent Sync' : 'Local Mode'}
+                    <Cloud size={10} /> {isCloudConnected ? 'Permanent Sync' : 'Local Mode'}
                  </span>
               </div>
             </div>
@@ -239,7 +246,7 @@ const App: React.FC = () => {
                 </button>
                 {isInboxOpen && (
                     <div className="fixed top-24 left-4 right-4 w-auto sm:absolute sm:top-full sm:right-0 sm:left-auto sm:w-96 sm:mt-3 bg-white rounded-[2rem] shadow-2xl border border-slate-100 overflow-hidden animate-slide-in origin-top sm:origin-top-right z-50">
-                        <div className="p-4 border-b border-slate-100 bg-slate-50/50 flex justify-between items-center"><span className="text-sm font-black text-slate-800">雲端新委託</span></div>
+                        <div className="p-4 border-b border-slate-100 bg-slate-50/50 flex justify-between items-center"><span className="text-sm font-black text-slate-800">雲端收件匣</span></div>
                         <div className="max-h-[60vh] overflow-y-auto p-2 space-y-2">
                             {inboxItems.length === 0 ? <div className="py-8 text-center text-slate-400 text-xs">目前沒有新委託</div> : inboxItems.map(item => (
                                 <div key={item.id} className="bg-white p-3 rounded-2xl border border-slate-100 shadow-sm flex flex-col gap-3">
@@ -247,13 +254,16 @@ const App: React.FC = () => {
                                         <div className="w-12 h-12 bg-slate-50 rounded-xl overflow-hidden shrink-0">{item.imageUrl ? <img src={item.imageUrl} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-slate-200"><Inbox size={16}/></div>}</div>
                                         <div className="flex-1 min-w-0"><h4 className="font-bold text-sm text-slate-800 truncate">{item.productName}</h4><p className="text-xs text-slate-500">{item.buyerName} <span className="text-indigo-500 font-bold">x{item.requestedQuantity}</span></p></div>
                                     </div>
-                                    <div className="flex gap-2"><button onClick={() => handleRejectInboxItem(item.id)} className="flex-1 py-2 text-xs font-bold text-slate-400 bg-slate-50 rounded-xl">忽略</button><button onClick={() => handleAcceptInboxItem(item)} className="flex-1 py-2 text-xs font-bold text-white bg-indigo-600 rounded-xl">接收存至雲端</button></div>
+                                    <div className="flex gap-2"><button onClick={() => handleRejectInboxItem(item.id)} className="flex-1 py-2 text-xs font-bold text-slate-400 bg-slate-50 rounded-xl">忽略</button><button onClick={() => handleAcceptInboxItem(item)} className="flex-1 py-2 text-xs font-bold text-white bg-indigo-600 rounded-xl">接收並存檔</button></div>
                                 </div>
                             ))}
                         </div>
                     </div>
                 )}
             </div>
+            <button onClick={() => setIsSettingsOpen(!isSettingsOpen)} className={`p-3 rounded-2xl transition-all shadow-sm active:scale-90 ${isSettingsOpen ? 'bg-slate-800 text-white' : 'bg-white border border-slate-200 text-slate-400'}`}>
+                <Settings size={18} />
+            </button>
             <button onClick={() => setIsCalculatorOpen(true)} className="p-3 bg-white border border-slate-200 rounded-2xl text-slate-400 active:scale-90 shadow-sm"><CalcIcon size={18} /></button>
             <button onClick={handleShareLink} className="px-5 py-3 bg-indigo-600 text-white rounded-2xl text-xs font-black shadow-lg shadow-indigo-200 active:scale-95 flex items-center gap-2"><Share2 size={14} strokeWidth={3} /><span className="hidden sm:inline">發布連結</span></button>
           </div>
@@ -261,6 +271,33 @@ const App: React.FC = () => {
       </header>
 
       <main className="max-w-5xl mx-auto px-5 py-8 space-y-8">
+        
+        {isSettingsOpen && (
+          <div className="bg-slate-900 rounded-[2.5rem] p-8 text-white shadow-2xl animate-slide-in space-y-6">
+             <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                   <div className="p-3 bg-white/10 rounded-2xl text-amber-400"><Database size={20}/></div>
+                   <div><h3 className="font-bold text-lg">雲端同步設定</h3><p className="text-[10px] text-white/50 font-bold uppercase tracking-widest">Store ID Persistence</p></div>
+                </div>
+                <button onClick={() => setIsSettingsOpen(false)} className="p-2 bg-white/5 rounded-xl text-white/40"><X size={18}/></button>
+             </div>
+             
+             <div className="bg-white/5 p-6 rounded-[2rem] border border-white/10 space-y-4">
+                <div className="flex justify-between items-center">
+                   <label className="text-[10px] font-bold text-white/40 uppercase tracking-widest">您的店鋪專屬識別碼 (請備妥此 ID)</label>
+                   <button onClick={() => { navigator.clipboard.writeText(storeId); alert('已複製 ID'); }} className="flex items-center gap-1.5 text-[9px] font-black text-amber-400 uppercase tracking-widest bg-amber-400/10 px-2 py-1 rounded-lg"><Copy size={10}/> 複製</button>
+                </div>
+                <div className="flex gap-3">
+                   <input type="text" value={tempStoreId} onChange={(e) => setTempStoreId(e.target.value)} className="flex-1 bg-black/30 border border-white/10 rounded-2xl px-5 py-4 text-sm font-mono text-amber-300 outline-none focus:border-amber-400/50" />
+                   <button onClick={handleUpdateStoreId} className="px-6 bg-white text-slate-900 rounded-2xl font-black text-xs flex items-center gap-2 active:scale-95"><RefreshCw size={14}/> 同步</button>
+                </div>
+                <p className="text-[10px] text-white/30 leading-relaxed px-1">
+                   ※ Store ID 是您雲端資料的唯一鑰匙。重新部署 Vercel 後，如果您發現資料消失，請在此輸入您原本備份的 ID 即可找回所有委託單。
+                </p>
+             </div>
+          </div>
+        )}
+
         <div className="bg-white p-6 rounded-[2rem] border border-slate-200 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-6">
             <div className="flex items-center gap-4">
                 <div className={`p-3 rounded-2xl ${formConfig.isFormActive ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'}`}>{formConfig.isFormActive ? <Eye size={20}/> : <EyeOff size={20}/>}</div>
@@ -280,7 +317,7 @@ const App: React.FC = () => {
         </div>
 
         <button onClick={() => setIsFormOpen(!isFormOpen)} className="w-full bg-white px-8 py-6 rounded-[2rem] border border-slate-200 shadow-sm flex items-center justify-between transition-all hover:border-indigo-200 group">
-          <div className="flex items-center gap-4"><div className={`p-2 rounded-xl transition-all ${isFormOpen ? 'bg-indigo-100 text-indigo-600 rotate-45' : 'bg-slate-100 text-slate-600'}`}><Plus size={22} strokeWidth={3} /></div><div className="text-left"><span className="font-black text-base text-slate-800 block">建立新委託</span><span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Permanent Store</span></div></div>
+          <div className="flex items-center gap-4"><div className={`p-2 rounded-xl transition-all ${isFormOpen ? 'bg-indigo-100 text-indigo-600 rotate-45' : 'bg-slate-100 text-slate-600'}`}><Plus size={22} strokeWidth={3} /></div><div className="text-left"><span className="font-black text-base text-slate-800 block">建立新委託</span><span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Add Manually</span></div></div>
           {isFormOpen ? <ChevronUp size={20} className="text-slate-300"/> : <ChevronDown size={20} className="text-slate-300"/>}
         </button>
 
