@@ -47,17 +47,17 @@ const compressImage = (file: File): Promise<string> => {
 const CATEGORIES = [
   { 
     name: 'UNIQLO', 
-    logo: 'https://upload.wikimedia.org/wikipedia/commons/9/92/UNIQLO_logo.svg', 
+    logo: 'https://www.google.com/s2/favicons?sz=128&domain=www.uniqlo.com', 
     type: 'uniqlo' 
   },
   { 
     name: 'GU', 
-    logo: 'https://upload.wikimedia.org/wikipedia/commons/c/cc/GU_logo.svg', 
+    logo: 'https://www.google.com/s2/favicons?sz=128&domain=www.gu-global.com', 
     type: 'uniqlo' 
   },
   { 
     name: 'MUJI', 
-    logo: 'https://upload.wikimedia.org/wikipedia/commons/c/ce/Muji_logo.svg', 
+    logo: 'https://www.google.com/s2/favicons?sz=128&domain=www.muji.com', 
     type: 'shipping_alert' 
   },
   { 
@@ -77,12 +77,12 @@ const CATEGORIES = [
   },
   { 
     name: '藥妝', 
-    logo: 'https://upload.wikimedia.org/wikipedia/commons/e/ef/Matsumotokiyoshi_logo.svg', 
+    logo: 'https://www.google.com/s2/favicons?sz=128&domain=www.matsukiyococokara-online.com', 
     type: 'law_alert' 
   },
   { 
     name: '伴手禮', 
-    logo: 'https://cdn-icons-png.flaticon.com/512/3013/3013444.png', 
+    logo: 'https://cdn-icons-png.flaticon.com/512/3130/3130310.png', 
     type: 'normal' 
   },
 ];
@@ -348,7 +348,7 @@ const BuyerForm: React.FC = () => {
                     onClick={() => handleCategorySelect(cat)}
                     className={`group flex flex-col items-center justify-center p-2 rounded-2xl border transition-all active:scale-95 h-28 ${shopInfo === cat.name ? 'bg-indigo-50 border-indigo-600 shadow-md ring-2 ring-indigo-600/10' : 'bg-white border-slate-100'}`}
                   >
-                      <div className="w-14 h-14 mb-2 flex items-center justify-center overflow-hidden rounded-xl bg-white shadow-sm border border-slate-50 group-active:scale-90 p-1.5">
+                      <div className="w-14 h-14 mb-2 flex items-center justify-center overflow-hidden rounded-xl bg-white shadow-sm border border-slate-50 group-active:scale-90 p-2">
                         <img 
                           src={cat.logo} 
                           alt={cat.name} 
