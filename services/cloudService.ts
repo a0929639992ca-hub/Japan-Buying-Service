@@ -1,5 +1,6 @@
 import { initializeApp, getApps, getApp } from 'firebase/app';
 import { getDatabase, ref, onValue, push, set, remove, serverTimestamp, update, onChildAdded, onChildChanged, onChildRemoved } from 'firebase/database';
+import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged, User } from 'firebase/auth';
 import { OrderItem } from '../types.ts';
 
 export interface FirebaseConfig {
@@ -12,7 +13,9 @@ export interface FirebaseConfig {
   appId: string;
 }
 
+let app: any = null;
 let db: any = null;
+let auth: any = null;
 
 const sanitizeForFirebase = (obj: any): any => {
   const clean = { ...obj };
@@ -29,17 +32,41 @@ const sanitizeForFirebase = (obj: any): any => {
 export const initCloud = (config: FirebaseConfig) => {
   try {
     if (!getApps().length) {
-      const app = initializeApp(config);
-      db = getDatabase(app);
+      app = initializeApp(config);
     } else {
-      const app = getApp();
-      db = getDatabase(app);
+      app = getApp();
     }
+    db = getDatabase(app);
+    auth = getAuth(app);
     return true;
   } catch (e) {
     console.error("Firebase Init Failed:", e);
     return false;
   }
+};
+
+// --- Auth 功能 ---
+export const loginGoogle = async () => {
+  if (!auth) throw new Error("Auth not initialized");
+  const provider = new GoogleAuthProvider();
+  try {
+    await signInWithPopup(auth, provider);
+  } catch (error) {
+    console.error("Login failed", error);
+    throw error;
+  }
+};
+
+export const logoutGoogle = async () => {
+  if (!auth) return;
+  await signOut(auth);
+};
+
+export const subscribeToAuth = (callback: (user: User | null) => void) => {
+  if (!auth) return () => {};
+  return onAuthStateChanged(auth, (user) => {
+    callback(user);
+  });
 };
 
 // --- 收件匣功能 (臨時) ---

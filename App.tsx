@@ -14,10 +14,13 @@ import {
   subscribeToConfig,
   saveOrderToStore,
   deleteOrderFromStore,
-  subscribeToOrders
+  subscribeToOrders,
+  loginGoogle,
+  logoutGoogle,
+  subscribeToAuth
 } from './services/cloudService.ts';
 import { COST_EXCHANGE_RATE } from './constants.ts';
-import { Search, Share2, Plus, ChevronUp, ChevronDown, Loader2, Banknote, Bell, Inbox, X, Check, Cloud, Sun, Lock, TrendingUp, Settings, Power, Eye, EyeOff, Database, Copy, RefreshCw, Wallet } from 'lucide-react';
+import { Search, Share2, Plus, ChevronUp, ChevronDown, Loader2, Banknote, Bell, Inbox, X, Check, Cloud, Sun, Lock, TrendingUp, Settings, Power, Eye, EyeOff, Database, Copy, RefreshCw, Wallet, LogIn, LogOut } from 'lucide-react';
 
 const FIREBASE_CONFIG: FirebaseConfig = {
   apiKey: "AIzaSyBwRgn0_jCELNK-RO9x3VRhuj2CZsvjpnY",
@@ -37,6 +40,7 @@ const RentoLogo = ({ className }: { className?: string }) => (
 );
 
 const App: React.FC = () => {
+  const [user, setUser] = useState<any>(null);
   const [orders, setOrders] = useState<OrderItem[]>([]);
   const [inboxItems, setInboxItems] = useState<OrderItem[]>([]);
   const [isInboxOpen, setIsInboxOpen] = useState(false);
@@ -86,30 +90,42 @@ const App: React.FC = () => {
   useEffect(() => {
     const success = initCloud(FIREBASE_CONFIG);
     setIsCloudConnected(success);
-    if (success && storeId) {
-      setIsSyncing(true);
-      const unsubOrders = subscribeToOrders(storeId, (cloudOrders) => {
-        setOrders(cloudOrders);
-        setIsSyncing(false);
+    
+    // 監聽登入狀態
+    const unsubAuth = subscribeToAuth((u) => {
+      setUser(u);
+    });
+
+    return () => unsubAuth();
+  }, []);
+
+  // 只有在已登入且有 StoreID 時才同步資料 (買家模式例外)
+  useEffect(() => {
+    if (viewMode === 'buyer') return;
+    if (!user || !storeId) return;
+
+    setIsSyncing(true);
+    const unsubOrders = subscribeToOrders(storeId, (cloudOrders) => {
+      setOrders(cloudOrders);
+      setIsSyncing(false);
+    });
+
+    const unsubInbox = subscribeToInbox(storeId, (newOrder) => {
+      setInboxItems(prev => {
+        if (prev.some(p => p.id === newOrder.id) || orders.some(o => o.id === newOrder.id)) return prev;
+        try { new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3').play().catch(()=>{}); } catch(e){}
+        return [newOrder, ...prev];
       });
+    });
 
-      const unsubInbox = subscribeToInbox(storeId, (newOrder) => {
-        setInboxItems(prev => {
-          if (prev.some(p => p.id === newOrder.id) || orders.some(o => o.id === newOrder.id)) return prev;
-          try { new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3').play().catch(()=>{}); } catch(e){}
-          return [newOrder, ...prev];
-        });
-      });
+    const unsubConfig = subscribeToConfig(storeId, (config) => setFormConfig(config));
 
-      const unsubConfig = subscribeToConfig(storeId, (config) => setFormConfig(config));
-
-      return () => {
-        unsubOrders();
-        unsubInbox();
-        unsubConfig();
-      };
-    }
-  }, [storeId]);
+    return () => {
+      unsubOrders();
+      unsubInbox();
+      unsubConfig();
+    };
+  }, [storeId, user, viewMode, orders]);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -204,7 +220,36 @@ const App: React.FC = () => {
     return q ? orders.filter(o => o.buyerName.toLowerCase().includes(q) || o.productName.toLowerCase().includes(q)) : orders;
   }, [orders, searchQuery]);
 
+  // 買家模式不需要登入
   if (viewMode === 'buyer') return <BuyerForm />;
+
+  // 管理者模式：未登入顯示登入頁面
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-6 text-center animate-fade-in">
+        <div className="w-full max-w-sm bg-white rounded-[2.5rem] p-10 premium-shadow border border-slate-100 space-y-8 relative overflow-hidden">
+           <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-indigo-500 to-indigo-600"></div>
+           <div className="w-24 h-24 bg-slate-900 rounded-3xl flex items-center justify-center mx-auto shadow-2xl shadow-indigo-200 rotate-3 transition-transform hover:rotate-6">
+              <RentoLogo className="w-12 h-12 text-amber-400" />
+           </div>
+           
+           <div className="space-y-2">
+             <h1 className="text-2xl font-black text-slate-800 tracking-tight">れんと代購 <span className="text-indigo-600">Smart</span></h1>
+             <p className="text-sm font-bold text-slate-400">管理後台 (Admin Access Only)</p>
+           </div>
+
+           <button 
+             onClick={() => loginGoogle()}
+             className="w-full py-4 bg-white border border-slate-200 rounded-2xl flex items-center justify-center gap-3 text-sm font-black text-slate-700 hover:bg-slate-50 hover:border-indigo-200 active-scale transition-all shadow-sm"
+           >
+             <div className="w-5 h-5"><svg viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.84z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg></div>
+             使用 Google 帳號登入
+           </button>
+        </div>
+        <p className="mt-8 text-[10px] font-black text-slate-300 uppercase tracking-widest">Powered by れんと代購 Smart Engine</p>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 pb-20 font-sans selection:bg-indigo-100 selection:text-indigo-900">
@@ -289,6 +334,12 @@ const App: React.FC = () => {
                 <p className="text-[11px] text-white/30 leading-relaxed max-w-lg">
                    ※ 店鋪 ID 預設為 165a060c。若需更換店鋪，請在此修改。
                 </p>
+             </div>
+
+             <div className="pt-4 border-t border-white/10">
+                <button onClick={() => logoutGoogle()} className="w-full py-4 bg-rose-600/20 text-rose-300 border border-rose-500/30 rounded-2xl font-black text-xs flex items-center justify-center gap-2 hover:bg-rose-600 hover:text-white transition-all">
+                  <LogOut size={16} /> 登出管理者帳號
+                </button>
              </div>
           </div>
         )}
