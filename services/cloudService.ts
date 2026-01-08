@@ -47,12 +47,25 @@ export const initCloud = (config: FirebaseConfig) => {
 
 // --- Auth 功能 ---
 export const loginGoogle = async () => {
-  if (!auth) throw new Error("Auth not initialized");
+  if (!auth) {
+    alert("Firebase Auth 尚未初始化，請檢查網路連線或 Config");
+    throw new Error("Auth not initialized");
+  }
   const provider = new GoogleAuthProvider();
   try {
     await signInWithPopup(auth, provider);
-  } catch (error) {
+  } catch (error: any) {
     console.error("Login failed", error);
+    // 針對常見錯誤給予中文提示
+    let msg = error.message;
+    if (error.code === 'auth/unauthorized-domain') {
+      msg = "網域未授權：請至 Firebase Console > Authentication > Settings > Authorized Domains 新增您的 Vercel網域。";
+    } else if (error.code === 'auth/operation-not-allowed') {
+      msg = "登入方式未啟用：請至 Firebase Console > Authentication > Sign-in method 啟用 Google 登入。";
+    } else if (error.code === 'auth/popup-closed-by-user') {
+      msg = "登入視窗已關閉";
+    }
+    alert(`登入失敗：\n${msg}`);
     throw error;
   }
 };
