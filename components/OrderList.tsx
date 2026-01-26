@@ -1,5 +1,5 @@
 // Fix: Correct malformed import statement
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { OrderItem, OrderStatus } from '../types.ts';
 import { STATUS_LABELS, STATUS_COLORS, calculateTwd } from '../constants.ts';
 import { 
@@ -14,6 +14,46 @@ interface OrderListProps {
   onRemoveOrder: (id: string) => void;
   onUpdateOrder: (id: string, updates: Partial<OrderItem>) => void;
 }
+
+const PriceInput = ({ value, onChange }: { value: number, onChange: (val: string) => void }) => {
+  const [localVal, setLocalVal] = useState(value?.toString() || '');
+  const [isFocused, setIsFocused] = useState(false);
+
+  useEffect(() => {
+    if (!isFocused) {
+      setLocalVal(value?.toString() || '');
+    }
+  }, [value, isFocused]);
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setLocalVal(e.target.value);
+  };
+
+  const handleBlur = () => {
+    setIsFocused(false);
+    if (localVal !== value?.toString()) {
+      onChange(localVal);
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.currentTarget.blur();
+    }
+  };
+
+  return (
+    <input 
+      type="number" 
+      value={localVal} 
+      onChange={handleChange}
+      onFocus={() => setIsFocused(true)}
+      onBlur={handleBlur}
+      onKeyDown={handleKeyDown}
+      className="w-16 pl-5 pr-1 py-0.5 bg-white border border-slate-200 rounded text-xs font-bold text-slate-700 outline-none focus:ring-1 focus:ring-indigo-500"
+    />
+  );
+};
 
 const OrderList: React.FC<OrderListProps> = ({ orders, onRemoveOrder, onUpdateOrder }) => {
   const [expandedBuyers, setExpandedBuyers] = useState<Set<string>>(new Set());
@@ -200,11 +240,9 @@ const OrderList: React.FC<OrderListProps> = ({ orders, onRemoveOrder, onUpdateOr
                                         <div className="flex items-center gap-2">
                                             <div className="relative">
                                                 <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-slate-400 font-bold">¥</span>
-                                                <input 
-                                                    type="number" 
-                                                    value={order.originalPriceJpy || ''} 
-                                                    onChange={(e) => handlePriceChange(order, e.target.value)}
-                                                    className="w-16 pl-5 pr-1 py-0.5 bg-white border border-slate-200 rounded text-xs font-bold text-slate-700 outline-none focus:ring-1 focus:ring-indigo-500"
+                                                <PriceInput 
+                                                    value={order.originalPriceJpy}
+                                                    onChange={(val) => handlePriceChange(order, val)}
                                                 />
                                             </div>
                                             <span className="text-xs font-bold text-slate-400">× {getEffectiveQty(order)}</span>
