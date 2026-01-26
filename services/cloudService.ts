@@ -64,6 +64,8 @@ export const loginGoogle = async () => {
       msg = "登入方式未啟用：請至 Firebase Console > Authentication > Sign-in method 啟用 Google 登入。";
     } else if (error.code === 'auth/popup-closed-by-user') {
       msg = "登入視窗已關閉";
+    } else if (error.code === 'auth/cancelled-popup-request') {
+      msg = "重複請求：偵測到多重登入視窗，請勿重複點擊。";
     }
     alert(`登入失敗：\n${msg}`);
     throw error;

@@ -6,7 +6,7 @@ import {
   ShoppingBasket, Trash2, Contact, 
   ShoppingCart, Minus, Plus, 
   Share2, Package, MapPin, Check,
-  ChevronDown, ChevronUp, CreditCard, Layers, X, ZoomIn
+  ChevronDown, ChevronUp, CreditCard, Layers, X, ZoomIn, FileText
 } from 'lucide-react';
 
 interface OrderListProps {
@@ -209,7 +209,9 @@ const OrderList: React.FC<OrderListProps> = ({ orders, onRemoveOrder, onUpdateOr
 
             {isExpanded && (
                 <div className="space-y-2 px-1 pb-4 animate-slide-up">
-                    {items.map((order) => (
+                    {items.map((order) => {
+                        const isSpecNote = order.notes?.includes('貨源碼');
+                        return (
                         <div key={order.id} className="bg-white rounded-2xl border border-slate-200/60 p-3 premium-shadow flex flex-col sm:flex-row gap-3 relative transition-all hover:bg-slate-50/50">
                             <div className="flex gap-3 flex-1">
                                 <div 
@@ -235,6 +237,17 @@ const OrderList: React.FC<OrderListProps> = ({ orders, onRemoveOrder, onUpdateOr
                                         </div>
                                         <h3 className="font-bold text-slate-900 text-sm line-clamp-1 leading-tight">{order.productName}</h3>
                                         {order.shopInfo && <div className="flex items-center gap-1 text-[10px] font-medium text-slate-400 truncate"><MapPin size={8} /> {order.shopInfo}</div>}
+                                        
+                                        {order.notes && (
+                                            <div className={`mt-1.5 rounded-lg p-2 border ${isSpecNote ? 'bg-indigo-50/50 border-indigo-100/50' : 'bg-slate-50 border-slate-100'}`}>
+                                                <div className="flex items-start gap-1.5">
+                                                    <FileText size={10} className={`${isSpecNote ? 'text-indigo-400' : 'text-slate-400'} mt-0.5 shrink-0`} />
+                                                    <p className={`text-[10px] font-medium leading-relaxed whitespace-pre-wrap break-all ${isSpecNote ? 'text-indigo-900' : 'text-slate-600'}`}>
+                                                        {order.notes}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        )}
                                     </div>
                                     <div className="flex items-end justify-between mt-1">
                                         <div className="flex items-center gap-2">
@@ -285,7 +298,7 @@ const OrderList: React.FC<OrderListProps> = ({ orders, onRemoveOrder, onUpdateOr
                                 </div>
                             </div>
                         </div>
-                    ))}
+                    )})}
                 </div>
             )}
           </div>
