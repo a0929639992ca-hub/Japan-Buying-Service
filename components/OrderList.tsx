@@ -6,7 +6,7 @@ import {
   ShoppingBasket, Trash2, Contact, 
   ShoppingCart, Minus, Plus, 
   Share2, Package, MapPin, Check,
-  ChevronDown, ChevronUp, CreditCard, Layers, X, ZoomIn, FileText
+  ChevronDown, ChevronUp, CreditCard, Layers, X, ZoomIn, FileText, Edit2, Save
 } from 'lucide-react';
 
 interface OrderListProps {
@@ -55,9 +55,98 @@ const PriceInput = ({ value, onChange }: { value: number, onChange: (val: string
   );
 };
 
+const EditOrderModal = ({ order, onClose, onSave }: { order: OrderItem, onClose: () => void, onSave: (updates: Partial<OrderItem>) => void }) => {
+  const [formData, setFormData] = useState({
+    productName: order.productName,
+    shopInfo: order.shopInfo || '',
+    notes: order.notes || '',
+    requestedQuantity: order.requestedQuantity
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    // 如果數量變更，自動重新計算台幣價格
+    const updates: Partial<OrderItem> = { ...formData };
+    
+    if (formData.requestedQuantity !== order.requestedQuantity) {
+       updates.calculatedPrice = calculateTwd(order.originalPriceJpy * formData.requestedQuantity);
+    }
+    
+    onSave(updates);
+    onClose();
+  };
+
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-fade-in">
+      <form onSubmit={handleSubmit} className="bg-white w-full max-w-sm rounded-[2rem] shadow-2xl overflow-hidden animate-slide-up">
+        <div className="bg-slate-50 p-6 border-b border-slate-100 flex justify-between items-center">
+          <h3 className="font-bold text-lg text-slate-800 flex items-center gap-2">
+            <Edit2 size={18} className="text-indigo-600"/> 編輯商品資訊
+          </h3>
+          <button type="button" onClick={onClose} className="p-2 bg-white rounded-full text-slate-400 hover:text-slate-600 shadow-sm border border-slate-100"><X size={16}/></button>
+        </div>
+        
+        <div className="p-6 space-y-4">
+          <div className="space-y-1.5">
+            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">商品名稱</label>
+            <input 
+              type="text" 
+              required
+              value={formData.productName} 
+              onChange={(e) => setFormData({...formData, productName: e.target.value})}
+              className="w-full px-4 py-3 bg-slate-50 rounded-xl outline-none text-sm font-bold text-slate-700 border border-transparent focus:bg-white focus:border-indigo-100 focus:ring-4 focus:ring-indigo-50 transition-all"
+            />
+          </div>
+
+          <div className="flex gap-4">
+             <div className="space-y-1.5 flex-1">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">購買地點</label>
+                <input 
+                  type="text" 
+                  value={formData.shopInfo} 
+                  onChange={(e) => setFormData({...formData, shopInfo: e.target.value})}
+                  className="w-full px-4 py-3 bg-slate-50 rounded-xl outline-none text-sm font-medium text-slate-700 border border-transparent focus:bg-white focus:border-indigo-100 focus:ring-4 focus:ring-indigo-50 transition-all"
+                />
+             </div>
+             <div className="space-y-1.5 w-24">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">數量</label>
+                <input 
+                  type="number" 
+                  min="1"
+                  required
+                  value={formData.requestedQuantity} 
+                  onChange={(e) => setFormData({...formData, requestedQuantity: parseInt(e.target.value) || 1})}
+                  className="w-full px-4 py-3 bg-slate-50 rounded-xl outline-none text-sm font-bold text-center text-slate-700 border border-transparent focus:bg-white focus:border-indigo-100 focus:ring-4 focus:ring-indigo-50 transition-all"
+                />
+             </div>
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">詳細備註 (含規格)</label>
+            <textarea 
+              rows={4}
+              value={formData.notes} 
+              onChange={(e) => setFormData({...formData, notes: e.target.value})}
+              className="w-full px-4 py-3 bg-slate-50 rounded-xl outline-none text-xs font-medium text-slate-600 border border-transparent focus:bg-white focus:border-indigo-100 focus:ring-4 focus:ring-indigo-50 transition-all resize-none leading-relaxed"
+            />
+          </div>
+        </div>
+
+        <div className="p-4 bg-slate-50 border-t border-slate-100 flex gap-3">
+          <button type="button" onClick={onClose} className="flex-1 py-3 text-xs font-bold text-slate-500 hover:bg-slate-100 rounded-xl transition-colors">取消</button>
+          <button type="submit" className="flex-1 py-3 bg-indigo-600 text-white text-xs font-bold rounded-xl shadow-lg shadow-indigo-200 hover:bg-indigo-700 transition-all active:scale-95 flex items-center justify-center gap-2">
+            <Save size={16} /> 儲存變更
+          </button>
+        </div>
+      </form>
+    </div>
+  );
+};
+
 const OrderList: React.FC<OrderListProps> = ({ orders, onRemoveOrder, onUpdateOrder }) => {
   const [expandedBuyers, setExpandedBuyers] = useState<Set<string>>(new Set());
   const [enlargedImage, setEnlargedImage] = useState<string | null>(null);
+  const [editingOrder, setEditingOrder] = useState<OrderItem | null>(null);
 
   if (orders.length === 0) {
     return (
@@ -275,6 +364,13 @@ const OrderList: React.FC<OrderListProps> = ({ orders, onRemoveOrder, onUpdateOr
                                 </div>
                                 <div className="flex gap-1">
                                     <button 
+                                        onClick={() => setEditingOrder(order)} 
+                                        className="p-2 rounded-lg bg-indigo-50 text-indigo-500 border border-indigo-100 active-scale"
+                                        title="編輯資訊"
+                                    >
+                                        <Edit2 size={14} />
+                                    </button>
+                                    <button 
                                         onClick={() => onUpdateOrder(order.id, { isPaid: !order.isPaid })}
                                         className={`p-2 rounded-lg transition-all active-scale ${order.isPaid ? 'bg-emerald-500 text-white' : 'bg-slate-50 text-slate-400 border border-slate-200'}`}
                                         title="標記已付款"
@@ -327,6 +423,17 @@ const OrderList: React.FC<OrderListProps> = ({ orders, onRemoveOrder, onUpdateOr
             />
           </div>
         </div>
+      )}
+
+      {editingOrder && (
+        <EditOrderModal 
+          order={editingOrder} 
+          onClose={() => setEditingOrder(null)} 
+          onSave={(updates) => {
+            onUpdateOrder(editingOrder.id, updates);
+            setEditingOrder(null);
+          }}
+        />
       )}
     </div>
   );
