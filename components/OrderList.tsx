@@ -65,11 +65,17 @@ const EditOrderModal = ({ order, onClose, onSave }: { order: OrderItem, onClose:
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // 如果數量變更，自動重新計算台幣價格
-    const updates: Partial<OrderItem> = { ...formData };
+    // 確保數量至少為 1
+    const qty = formData.requestedQuantity > 0 ? formData.requestedQuantity : 1;
     
-    if (formData.requestedQuantity !== order.requestedQuantity) {
-       updates.calculatedPrice = calculateTwd(order.originalPriceJpy * formData.requestedQuantity);
+    const updates: Partial<OrderItem> = { 
+        ...formData,
+        requestedQuantity: qty
+    };
+    
+    // 如果數量變更，自動重新計算台幣價格
+    if (qty !== order.requestedQuantity) {
+       updates.calculatedPrice = calculateTwd(order.originalPriceJpy * qty);
     }
     
     onSave(updates);
@@ -114,8 +120,11 @@ const EditOrderModal = ({ order, onClose, onSave }: { order: OrderItem, onClose:
                   type="number" 
                   min="1"
                   required
-                  value={formData.requestedQuantity} 
-                  onChange={(e) => setFormData({...formData, requestedQuantity: parseInt(e.target.value) || 1})}
+                  value={formData.requestedQuantity || ''} 
+                  onChange={(e) => {
+                      const val = parseInt(e.target.value);
+                      setFormData({...formData, requestedQuantity: isNaN(val) ? 0 : val});
+                  }}
                   className="w-full px-4 py-3 bg-slate-50 rounded-xl outline-none text-sm font-bold text-center text-slate-700 border border-transparent focus:bg-white focus:border-indigo-100 focus:ring-4 focus:ring-indigo-50 transition-all"
                 />
              </div>
@@ -403,17 +412,16 @@ const OrderList: React.FC<OrderListProps> = ({ orders, onRemoveOrder, onUpdateOr
 
       {enlargedImage && (
         <div 
-          className="fixed inset-0 z-[100] bg-slate-900/90 backdrop-blur-md flex flex-col items-center justify-center p-4 sm:p-10 animate-fade-in"
+          className="fixed inset-0 z-[100] bg-slate-900/95 backdrop-blur-md flex flex-col items-center justify-center p-4 sm:p-10 animate-fade-in"
           onClick={() => setEnlargedImage(null)}
         >
-          <div className="absolute top-4 right-4 z-[110]">
-            <button 
-              onClick={() => setEnlargedImage(null)}
-              className="p-3 bg-white/10 text-white rounded-full hover:bg-white/20 transition-all active-scale"
-            >
-              <X size={20} />
-            </button>
-          </div>
+          <button 
+            onClick={(e) => { e.stopPropagation(); setEnlargedImage(null); }}
+            className="absolute top-6 right-6 z-[120] p-4 bg-white/10 text-white rounded-full hover:bg-white/20 transition-all active-scale shadow-lg"
+            aria-label="Close"
+          >
+            <X size={24} />
+          </button>
           <div className="relative w-full h-full flex items-center justify-center pointer-events-none">
             <img 
               src={enlargedImage} 

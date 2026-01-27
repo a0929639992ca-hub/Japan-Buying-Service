@@ -15,8 +15,9 @@ const Calculator: React.FC<CalculatorProps> = ({ onClose, isOpen }) => {
   useEffect(() => {
     const val = parseFloat(jpyAmount);
     if (!isNaN(val) && val >= 0) {
-      setTwdResult(calculateTwd(val));
-      setCurrentRate(val >= 5500 ? 0.23 : 0.24);
+      const rate = val >= 5500 ? 0.23 : 0.24;
+      setTwdResult(Math.ceil(val * rate));
+      setCurrentRate(rate);
     } else {
       setTwdResult(null);
       setCurrentRate(0.24);
@@ -67,8 +68,8 @@ const Calculator: React.FC<CalculatorProps> = ({ onClose, isOpen }) => {
               {twdResult !== null ? twdResult.toLocaleString() : '0'}
             </div>
             <p className="text-xs text-gray-400 mt-2 text-center leading-relaxed">
-              滿 ¥5,500 匯率 0.23 / 未滿則 0.24<br/>
-              <span className="opacity-50">運費與其他手續費另計</span>
+              滿 ¥5,500 匯率 0.23<br/>
+              未滿則為 0.24
             </p>
           </div>
 
