@@ -109,17 +109,24 @@ const BuyerForm: React.FC = () => {
     }
   };
 
-  const addToCart = () => {
-    if (!productName.trim()) { alert("請輸入商品名稱"); return; }
-    if (!qty || parseInt(qty) <= 0) { alert("請輸入數量"); return; }
+  const createOrderItem = (): OrderItem | null => {
+    if (!productName.trim()) { alert("請輸入商品名稱"); return null; }
+    if (!qty || parseInt(qty) <= 0) { alert("請輸入數量"); return null; }
     
-    let finalNotes = notes;
+    let spec: OrderItem['spec'] = undefined;
+    
+    // 如果是 UNIQLO 或 GU，檢查並建立 spec 物件
     if (shopInfo === 'UNIQLO' || shopInfo === 'GU') {
-        if (!itemCode || itemCode.length !== 6) { alert("請輸入 6 碼貨源碼"); return; }
-        finalNotes = `[${itemGender}] 貨源碼:${itemCode} / 尺寸:${itemSize || '未填'} / 顏色:${itemColor || '未填'}\n${notes}`;
+        if (!itemCode || itemCode.length !== 6) { alert("請輸入 6 碼貨源碼"); return null; }
+        spec = {
+            gender: itemGender,
+            code: itemCode,
+            size: itemSize || '未填',
+            color: itemColor || '未填'
+        };
     }
 
-    const newItem: OrderItem = {
+    return {
       id: `EXT-${Date.now()}`,
       buyerName: buyerName || '新買家',
       productName,
@@ -131,9 +138,15 @@ const BuyerForm: React.FC = () => {
       calculatedPrice: 0,
       status: OrderStatus.PENDING,
       isPaid: false,
-      notes: finalNotes,
+      notes: notes,
+      spec: spec, // 存入規格
       createdAt: Date.now(),
     };
+  };
+
+  const addToCart = () => {
+    const newItem = createOrderItem();
+    if (!newItem) return;
 
     setCart(prev => [...prev, newItem]);
     setProductName(''); setShopInfo(''); setQty('1'); setNotes(''); setImageUrl(''); setItemCode(''); setItemSize(''); setItemColor('');
@@ -145,10 +158,16 @@ const BuyerForm: React.FC = () => {
     if (!buyerName.trim()) { alert("請填寫您的暱稱"); return; }
     setIsSending(true);
     let finalCart = [...cart];
+    
+    // 如果表單上還有未加入購物車的資料，嘗試加入
     if (productName && qty) {
-      let currentNotes = notes;
-      if (shopInfo === 'UNIQLO' || shopInfo === 'GU') currentNotes = `[${itemGender}] 貨源碼:${itemCode} / 尺寸:${itemSize} / 顏色:${itemColor}\n${notes}`;
-      finalCart.push({ id: `EXT-L-${Date.now()}`, buyerName, productName, shopInfo, imageUrl, originalPriceJpy: 0, requestedQuantity: parseInt(qty), purchasedQuantity: 0, calculatedPrice: 0, status: OrderStatus.PENDING, isPaid: false, notes: currentNotes, createdAt: Date.now() });
+      const currentItem = createOrderItem();
+      if (currentItem) {
+          finalCart.push(currentItem);
+      } else {
+          setIsSending(false);
+          return;
+      }
     }
 
     if (finalCart.length === 0) { alert("請先填寫商品"); setIsSending(false); return; }
@@ -290,6 +309,14 @@ const BuyerForm: React.FC = () => {
               {(shopInfo.toUpperCase().includes('UNIQLO') || shopInfo.toUpperCase().includes('GU')) && (
                   <div className="bg-indigo-50/40 border border-indigo-100/50 rounded-4xl p-7 space-y-6 animate-slide-up">
                       <div className="flex items-center gap-2.5"><Star size={16} className="text-indigo-500 fill-indigo-500" /><span className="text-[11px] font-black text-indigo-800 uppercase tracking-wider">服飾細節規格</span></div>
+                      
+                      <div className="flex gap-4">
+                        <button type="button" onClick={() => setItemGender('WOMEN')} className={`flex-1 py-3 rounded-xl text-xs font-black transition-all ${itemGender === 'WOMEN' ? 'bg-white text-indigo-600 shadow-md ring-1 ring-indigo-100' : 'bg-white/50 text-slate-400'}`}>WOMEN</button>
+                        <button type="button" onClick={() => setItemGender('MEN')} className={`flex-1 py-3 rounded-xl text-xs font-black transition-all ${itemGender === 'MEN' ? 'bg-white text-indigo-600 shadow-md ring-1 ring-indigo-100' : 'bg-white/50 text-slate-400'}`}>MEN</button>
+                        <button type="button" onClick={() => setItemGender('KIDS')} className={`flex-1 py-3 rounded-xl text-xs font-black transition-all ${itemGender === 'KIDS' ? 'bg-white text-indigo-600 shadow-md ring-1 ring-indigo-100' : 'bg-white/50 text-slate-400'}`}>KIDS</button>
+                        <button type="button" onClick={() => setItemGender('BABY')} className={`flex-1 py-3 rounded-xl text-xs font-black transition-all ${itemGender === 'BABY' ? 'bg-white text-indigo-600 shadow-md ring-1 ring-indigo-100' : 'bg-white/50 text-slate-400'}`}>BABY</button>
+                      </div>
+
                       <div className="grid grid-cols-1 gap-5">
                           <div className="space-y-2"><label className="text-[10px] font-black text-indigo-400 uppercase tracking-widest ml-1">6 碼貨源碼</label><input type="text" maxLength={6} value={itemCode} onChange={e => setItemCode(e.target.value)} placeholder="商品標籤上的 6 位數字" className="w-full px-5 py-4 bg-white rounded-2xl border border-indigo-100 font-bold focus:ring-4 focus:ring-indigo-100 outline-none" /></div>
                           <div className="grid grid-cols-2 gap-4">

@@ -1,7 +1,13 @@
 // 基礎匯率設定
 // 規則：滿 5500 日幣匯率 0.23，未滿則 0.24
-export const calculateTwd = (jpyAmount: number): number => {
-  const rate = jpyAmount >= 5500 ? 0.23 : 0.24;
+// 若有傳入 customRate，則優先使用
+export const calculateTwd = (jpyAmount: number, customRate?: number): number => {
+  let rate = 0.24;
+  if (customRate !== undefined && customRate > 0) {
+    rate = customRate;
+  } else {
+    rate = jpyAmount >= 5500 ? 0.23 : 0.24;
+  }
   return Math.ceil(jpyAmount * rate);
 };
 

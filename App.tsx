@@ -216,14 +216,19 @@ const App: React.FC = () => {
     await updateStoreConfig(storeId, { ...formConfig, deadline: val });
   };
 
+  // 利潤計算更新：使用 costPriceJpy (免稅價) 若有填寫，否則用 originalPriceJpy
   const stats = useMemo(() => {
     let jpy = 0, twd = 0, paid = 0, profit = 0;
     orders.forEach(o => {
       jpy += (o.originalPriceJpy * o.requestedQuantity);
       twd += o.calculatedPrice;
       if (o.isPaid) paid += o.calculatedPrice;
-      const eqty = o.status === OrderStatus.PENDING ? o.requestedQuantity : o.purchasedQuantity;
-      profit += (o.calculatedPrice - Math.ceil(o.originalPriceJpy * eqty * COST_EXCHANGE_RATE));
+      
+      const effectiveQty = o.status === OrderStatus.PENDING ? o.requestedQuantity : o.purchasedQuantity;
+      // 成本優先取 costPriceJpy (免稅入貨價)，若無則取 originalPriceJpy (報價)
+      const costBase = o.costPriceJpy && o.costPriceJpy > 0 ? o.costPriceJpy : o.originalPriceJpy;
+      // 淨利 = 台幣報價 - (日幣成本 * 成本匯率)
+      profit += (o.calculatedPrice - Math.ceil(costBase * effectiveQty * COST_EXCHANGE_RATE));
     });
     return { jpy, twd, paid, profit };
   }, [orders]);
